@@ -15,10 +15,7 @@ export default {
     'prettier/prettier': ['error'],
     'no-console': 'warn',
     'unused-imports/no-unused-imports': 'error',
-    '@typescript-eslint/no-unused-vars': [
-      'warn',
-      { argsIgnorePattern: '^_' },
-    ],
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
   },
   ignorePatterns: ['dist', 'node_modules'],
 };
