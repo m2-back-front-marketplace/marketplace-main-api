@@ -13,3 +13,157 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Users {
+  id       Int      @id @default(autoincrement())
+  username String
+  email    String   @unique
+  password String
+  role     String
+
+  // Relations
+  client Clients?
+  seller Sellers?
+  admin  Admin?
+}
+
+model Clients {
+  id         Int      @id
+  phone      Int?
+  created_at DateTime @default(now())
+  update_at  DateTime @updatedAt
+  address_id Int?
+
+  // Relations
+  user    Users     @relation(fields: [id], references: [id])
+  address Address?  @relation(fields: [address_id], references: [id])
+  cart    Cart[]
+  review  Review[]
+  purchase Purchase[]
+}
+
+model Sellers {
+  id               Int      @id
+  phone            String?
+  created_at       DateTime @default(now())
+  update_at        DateTime @updatedAt
+  description      String?
+  address_id       Int?
+  tax_id           String?
+  bank_account     String?
+  bank_account_bic String?
+  image            String?
+
+  // Relations
+  user    Users    @relation(fields: [id], references: [id])
+  address Address? @relation(fields: [address_id], references: [id])
+  products Products[]
+}
+
+model Admin {
+  id   Int   @id
+  user Users @relation(fields: [id], references: [id])
+}
+
+model Address {
+  id          Int        @id @default(autoincrement())
+  country     String
+  city        String
+  street      String
+  postal_code String
+
+  clients Clients[]
+  sellers Sellers[]
+}
+
+model Products {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String?
+  price       Float
+  quantity    Int
+  image       String?
+  approuved   String?
+  seller_id   Int
+  discount_id Int?
+
+  // Relations
+  seller     Sellers   @relation(fields: [seller_id], references: [id])
+  discount   Discount? @relation(fields: [discount_id], references: [id])
+  categories Products_category[]
+  productItems Product_item[]
+  reviews    Review[]
+}
+
+model Category {
+  id       Int                @id @default(autoincrement())
+  name     String
+  products Products_category[]
+}
+
+model Products_category {
+  product_id  Int
+  category_id Int
+
+  // Relations
+  product  Products @relation(fields: [product_id], references: [id])
+  category Category @relation(fields: [category_id], references: [id])
+
+  @@id([product_id, category_id])
+}
+
+model Product_item {
+  id         Int       @id @default(autoincrement())
+  product_id Int
+  quantity   Int
+
+  // Relations
+  product Products @relation(fields: [product_id], references: [id])
+  carts   Cart[]
+}
+
+model Cart {
+  id             Int          @id @default(autoincrement())
+  product_item_id Int
+  client_id       Int
+  added_at        DateTime     @default(now())
+
+  // Relations
+  product_item Product_item @relation(fields: [product_item_id], references: [id])
+  client       Clients      @relation(fields: [client_id], references: [id])
+  purchase     Purchase[]
+}
+
+model Purchase {
+  id        Int      @id @default(autoincrement())
+  status    String
+  cart_id   Int
+  client_id Int
+
+  // Relations
+  cart    Cart    @relation(fields: [cart_id], references: [id])
+  client  Clients @relation(fields: [client_id], references: [id])
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  client_id  Int
+  product_id Int
+  review     String?
+  note       Float?
+
+  // Relations
+  client  Clients  @relation(fields: [client_id], references: [id])
+  product Products @relation(fields: [product_id], references: [id])
+}
+
+model Discount {
+  id         Int       @id @default(autoincrement())
+  name       String
+  amount     Float
+  start_date DateTime
+  end_date   DateTime
+  active     Boolean
+  products   Products[]
+}
+
