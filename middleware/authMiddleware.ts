@@ -4,8 +4,10 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 
 const prisma = new PrismaClient();
 
-const authenticate = async (request: FastifyRequest<{ Body: { userId: number}}>,
-  reply: FastifyReply) => {
+const authenticate = async (
+  request: FastifyRequest<{ Body: { userId: number } }>,
+  reply: FastifyReply
+) => {
   try {
     const token = request.cookies.token;
     if (!token) {

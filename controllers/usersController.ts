@@ -104,34 +104,36 @@ const usersController = {
     }
   },
 
-  update: async(
-    request: FastifyRequest<{Body : {id: number, username: string, email: string, password: string}}>,
+  update: async (
+    request: FastifyRequest<{
+      Body: { id: number; username: string; email: string; password: string };
+    }>,
     reply: FastifyReply
   ) => {
     try {
-      const {id, username , email , password} = request.body;
-      if (!id){
-        return reply.status(401).send({message: "User not found"});
+      const { id, username, email, password } = request.body;
+      if (!id) {
+        return reply.status(401).send({ message: "User not found" });
       }
       const user = prisma.users.update({
         where: {
-          id: id
+          id: id,
         },
         data: {
           username: username,
           email: email,
           password: password,
-        }
+        },
       });
       if (!user) {
-        return reply.status(404).send({message: "User not found"});
+        return reply.status(404).send({ message: "User not found" });
       }
-      return reply.status(201).send({message : "User updated"});
-    }catch (error) {
+      return reply.status(201).send({ message: "User updated" });
+    } catch (error) {
       console.error("error update user controller", error);
-      return reply.status(500).send({message: "User not found"});
+      return reply.status(500).send({ message: "User not found" });
     }
-  }
+  },
 };
 
 export default usersController;
