@@ -75,7 +75,7 @@ const usersController = {
           username,
           email,
           password: hashPassword,
-          role: "client",
+          role: "client"
         },
       });
 
@@ -94,46 +94,64 @@ const usersController = {
       return reply.status(201).send({
         user: {
           id: user.id,
-          username,
-          email,
+          username: user.username,
+          email: user.email,
         },
       });
     } catch (error) {
-      console.error("error login controller", error);
-      return reply.status(500).send({ message: "User not found" });
+      console.error("error register controller", error);
+      return reply.status(500).send({ message: "User not create "});
     }
   },
 
-  update: async (
-    request: FastifyRequest<{
-      Body: { id: number; username: string; email: string; password: string };
-    }>,
+  update: async(
+    request: FastifyRequest<{Body : {id: number, username: string, email: string, password: string}}>,
     reply: FastifyReply
   ) => {
     try {
-      const { id, username, email, password } = request.body;
-      if (!id) {
-        return reply.status(401).send({ message: "User not found" });
+      const {id, username , email , password} = request.body;
+      if (!id){
+        return reply.status(401).send({message: "User not connected or no id found"});
       }
-      const user = prisma.users.update({
+      const user = await prisma.users.update({
         where: {
-          id: id,
+          id: id
         },
         data: {
           username: username,
           email: email,
           password: password,
-        },
+        }
       });
-      if (!user) {
-        return reply.status(404).send({ message: "User not found" });
+      if(!user){
+        return reply.status(401).send({message: "User not found"});
       }
-      return reply.status(201).send({ message: "User updated" });
     } catch (error) {
-      console.error("error update user controller", error);
-      return reply.status(500).send({ message: "User not found" });
+      console.error("error update controller", error);
+      return reply.status(500).send({message: "User not found"});
     }
   },
+
+  delete: async(
+    request: FastifyRequest<{Body: {email: string}}>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const {email} = request.body;
+      if (!email){
+        return reply.status(401).send({message: "Email required"});
+      }
+      await prisma.users.delete({
+        where: {
+          email: email
+        }
+      });
+    }catch (error){
+      console.error("error delete controller", error);
+      return reply.status(500).send({message: "User not found"});
+    }
+  }
 };
+
 
 export default usersController;

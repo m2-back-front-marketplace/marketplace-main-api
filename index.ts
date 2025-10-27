@@ -67,8 +67,8 @@ fastify.register(cookie);
 
 const start = async () => {
   try {
-    await fastify.listen({ port: 5173, host: process.env.API_URL || "0.0.0.0" });
-    console.log("server listning on port 8000");
+    await fastify.listen({ port: 3000, host: "localhost" });
+    console.log("server listening on port 3000");
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
