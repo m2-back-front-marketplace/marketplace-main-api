@@ -1,9 +1,11 @@
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../generated/prisma/client";
+import type { FastifyReply, FastifyRequest } from "fastify";
 
 const prisma = new PrismaClient();
 
-const authenticate = async (request, reply) => {
+const authenticate = async (request: FastifyRequest<{ Body: { userId: number}}>,
+  reply: FastifyReply) => {
   try {
     const token = request.cookies.token;
     if (!token) {
@@ -20,7 +22,7 @@ const authenticate = async (request, reply) => {
       return reply.code(401).send({ error: "Invalid token payload" });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: decoded.id },
       select: { id: true },
     });
@@ -29,7 +31,7 @@ const authenticate = async (request, reply) => {
       return reply.code(401).send({ error: "Invalid token" });
     }
 
-    request.user = { userId: user.id };
+    request.body = { userId: user.id };
   } catch {
     return reply.code(401).send({ error: "Invalid Authentification" });
   }

@@ -5,9 +5,8 @@ import routes from "./routes/route.ts";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 
-
 const fastify = Fastify({
-  logger: true
+  logger: true,
 });
 
 fastify.register(swagger, {
@@ -25,9 +24,7 @@ fastify.register(swagger, {
     schemes: ["http", "https"],
     consumes: ["application/json"],
     produces: ["application/json"],
-    tags: [
-      { name: "user", description: "User related endpoints" },
-    ],
+    tags: [{ name: "user", description: "User related endpoints" }],
     securityDefinitions: {
       cookieAuth: {
         type: "apiKey",
@@ -50,7 +47,7 @@ fastify.register(swaggerUI, {
 fastify.register(routes);
 
 fastify.get("/health", async (request, reply) => {
-  reply.send({health: "api is up and healthy"});
+  reply.send({ health: "api is up and healthy" });
 });
 
 fastify.register(cors, {
@@ -70,7 +67,7 @@ fastify.register(cookie);
 
 const start = async () => {
   try {
-    await fastify.listen({port: 8000, host: process.env.API_URL || "0.0.0.0"});
+    await fastify.listen({ port: 5173, host: process.env.API_URL || "0.0.0.0" });
     console.log("server listning on port 8000");
   } catch (err) {
     fastify.log.error(err);
