@@ -1,2 +1,4 @@
-bun lint
+bun test
 bun format
+bun lint
+

@@ -176,4 +176,4 @@ dist
 
 /generated/prisma
 
-Dockerfile
+.env.test

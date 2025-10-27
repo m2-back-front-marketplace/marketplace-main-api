@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 dotenv.config();
 const prisma = new PrismaClient();
 
-const usersController = {
+const usersController = (prisma: PrismaClient) => ({
   login: async (
     request: FastifyRequest<{ Body: { email: string; password: string } }>,
     reply: FastifyReply
@@ -151,7 +151,7 @@ const usersController = {
       return reply.status(500).send({message: "User not found"});
     }
   }
-};
+});
 
 
 export default usersController;

@@ -12,8 +12,8 @@ const fastify = Fastify({
 fastify.register(swagger, {
   swagger: {
     info: {
-      title: "Documento API",
-      description: "API pour l'application Documento",
+      title: "Varketplace API",
+      description: "API pour Varketplace",
       version: "1.0.0",
     },
     externalDocs: {
@@ -76,3 +76,5 @@ const start = async () => {
 };
 
 await start();
+
+export default fastify;
