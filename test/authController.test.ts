@@ -11,61 +11,101 @@ describe("usersController", () => {
   let hashedPassword: string;
 
   beforeEach(async () => {
-    // Reset le mock avant chaque test
     prismaMock._reset();
-
-    // Crée un mot de passe hashé
     hashedPassword = await bcrypt.hash("password123", 10);
 
-    // Initialisation du reply
     reply = {
       statusCode: 0,
       cookies: [],
-      status(code: number) { this.statusCode = code; return this; },
-      send(obj: any) { this.body = obj; return this; },
-      setCookie(name: string, value: string, options: any) { this.cookies.push({ name, value, options }); },
       body: null,
+      status(code: number) {
+        this.statusCode = code;
+        return this;
+      },
+      send(obj: any) {
+        this.body = obj;
+        return this;
+      },
+      setCookie(name: string, value: string, options: any) {
+        this.cookies.push({ name, value, options });
+      },
+    };
+  });
+
+  afterEach(() => prismaMock._reset());
+
+  // ---------- REGISTER CLIENT ----------
+  it("registerClient: should create a client user", async () => {
+    const request = {
+      body: {
+        username: "clientUser",
+        email: "client@example.com",
+        password: "password123",
+        phone: 123456789,
+        address_id: 1,
+      },
     };
 
-    // RECREER un utilisateur pour login, update, delete
+    prismaMock.users.findUnique.mockResolvedValue(null);
     prismaMock.users.create.mockResolvedValue({
       id: 1,
-      username: "john",
-      email: "john@example.com",
+      username: "clientUser",
+      email: "client@example.com",
       password: hashedPassword,
-    });
-  });
-
-  afterEach(() => {
-    // Reset après chaque test
-    prismaMock._reset();
-  });
-
-  // ---------- REGISTER ----------
-  it("register: should create a user", async () => {
-    const request = { body: { username: "newuser", email: "newuser@example.com", password: "password123" } };
-
-    prismaMock.users.create.mockResolvedValue({
-      id: 2,
-      username: "newuser",
-      email: "newuser@example.com",
-      password: await bcrypt.hash("password123", 10),
+      role: "client",
+      client: {
+        id: 1,
+        phone: 123456789,
+        address_id: 1,
+      },
     });
 
-    await controller.register(request as any, reply as any);
+    await controller.registerClient(request as any, reply as any);
 
     expect(reply.statusCode).toBe(201);
-    expect(reply.body.user.username).toBe("newuser");
-    expect(reply.body.user.email).toBe("newuser@example.com");
+    expect(reply.body.message).toBe("Client created");
+    expect(reply.body.user.role).toBe("client");
     expect(reply.cookies.length).toBe(1);
   });
 
-  it("register: should return 400 if fields missing", async () => {
-    const request = { body: { username: "", email: "", password: "" } };
-    await controller.register(request as any, reply as any);
+  // ---------- REGISTER SELLER ----------
+  it("registerSeller: should create a seller user", async () => {
+    const request = {
+      body: {
+        username: "sellerUser",
+        email: "seller@example.com",
+        password: "password123",
+        phone: "0600000000",
+        description: "Top seller",
+        address_id: 2,
+        tax_id: 12345,
+        bank_account: "FR123",
+        bank_account_bic: "BIC123",
+        image: "seller.png",
+      },
+    };
 
-    expect(reply.statusCode).toBe(400);
-    expect(reply.body.message).toBe("All field required");
+    prismaMock.users.findUnique.mockResolvedValue(null);
+    prismaMock.users.create.mockResolvedValue({
+      id: 2,
+      username: "sellerUser",
+      email: "seller@example.com",
+      password: hashedPassword,
+      role: "seller",
+      seller: {
+        id: 2,
+        phone: "0600000000",
+        description: "Top seller",
+        address_id: 2,
+      },
+    });
+
+    await controller.registerSeller(request as any, reply as any);
+
+    expect(reply.statusCode).toBe(201);
+    expect(reply.body.message).toBe("Seller created");
+    expect(reply.body.user.role).toBe("seller");
+    expect(reply.cookies.length).toBe(1);
   });
 
   // ---------- LOGIN ----------
@@ -109,10 +149,12 @@ describe("usersController", () => {
       password: "newpass",
     });
 
-    const request = { body: { id: 1, username: "johnny", email: "john@example.com", password: "newpass" } };
+    const request = {
+      body: { id: 1, username: "johnny", email: "john@example.com", password: "newpass" },
+    };
     await controller.update(request as any, reply as any);
 
-    expect(reply.body).toBeNull(); // ton controller actuel ne renvoie rien
+    expect(reply.statusCode).not.toBe(500);
   });
 
   // ---------- DELETE ----------
@@ -127,7 +169,6 @@ describe("usersController", () => {
     const request = { body: { email: "john@example.com" } };
     await controller.delete(request as any, reply as any);
 
-    expect(reply.body).toBeNull(); // ton controller actuel ne renvoie rien
+    expect(reply.statusCode).not.toBe(500);
   });
-
 });

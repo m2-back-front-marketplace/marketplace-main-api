@@ -1,4 +1,4 @@
 bun test
 bun format
-bun lint
+bun lint:fix
 
