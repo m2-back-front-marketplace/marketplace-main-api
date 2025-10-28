@@ -18,8 +18,8 @@ const userRoutes = (fastify: FastifyInstance) => {
           username: { type: "string" },
           email: { type: "string", format: "email" },
           password: { type: "string", minLength: 6 },
-          phone: { type: "number"},
-          address_id: {type: "number"}
+          phone: { type: "number" },
+          address_id: { type: "number" },
         },
       },
     },
@@ -27,22 +27,22 @@ const userRoutes = (fastify: FastifyInstance) => {
   });
 
   fastify.post("/registerSeller", {
-    schema:{
+    schema: {
       tags: ["seller"],
       description: "Refister a new seller",
       body: {
         type: "object",
-        required: ["username" , "email", "password"],
+        required: ["username", "email", "password"],
         properties: {
-          username: {type: "string"},
+          username: { type: "string" },
           email: { type: "string", format: "email" },
           password: { type: "string", minLength: 6 },
-          phone: { type: "number"},
-          address_id: {type: "number"},
-          tax_id: {type: "number"},
-          bank_account: {type: "string"},
-          bank_account_bic: {type: "string"},
-          image: {type: "string"}
+          phone: { type: "number" },
+          address_id: { type: "number" },
+          tax_id: { type: "number" },
+          bank_account: { type: "string" },
+          bank_account_bic: { type: "string" },
+          image: { type: "string" },
         },
       },
     },
@@ -73,7 +73,7 @@ const userRoutes = (fastify: FastifyInstance) => {
     },
     onRequest: [authenticate],
     handler: controller.delete,
-  } as any);
+  });
 
   fastify.put("/update", {
     schema: {
@@ -91,7 +91,7 @@ const userRoutes = (fastify: FastifyInstance) => {
     },
     onRequest: [authenticate],
     handler: controller.update,
-  } as any);
+  });
 };
 
 export default userRoutes;

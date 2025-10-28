@@ -58,7 +58,15 @@ const usersController = (prisma: PrismaClient) => ({
   },
 
   registerClient: async (
-    request: FastifyRequest<{Body: {username: string; email: string; password: string; phone: number; address_id: number}}>,
+    request: FastifyRequest<{
+      Body: {
+        username: string;
+        email: string;
+        password: string;
+        phone: number;
+        address_id: number;
+      };
+    }>,
     reply: FastifyReply
   ) => {
     try {
@@ -91,7 +99,9 @@ const usersController = (prisma: PrismaClient) => ({
         include: { client: true },
       });
 
-      const token = jwt.sign({ id: user.id, role: "client" }, process.env.JWT_SECRET!, { expiresIn: "1d" });
+      const token = jwt.sign({ id: user.id, role: "client" }, process.env.JWT_SECRET!, {
+        expiresIn: "1d",
+      });
       reply.setCookie("token", token, { httpOnly: true, sameSite: "strict" });
 
       return reply.status(201).send({ message: "Client created", user });
@@ -102,11 +112,35 @@ const usersController = (prisma: PrismaClient) => ({
   },
 
   registerSeller: async (
-    request: FastifyRequest<{Body: {username: string; email: string; password: string; phone: string; description: string; address_id: number; tax_id: number; bank_account: string; bank_account_bic: string; image: string}}>,
+    request: FastifyRequest<{
+      Body: {
+        username: string;
+        email: string;
+        password: string;
+        phone: string;
+        description: string;
+        address_id: number;
+        tax_id: number;
+        bank_account: string;
+        bank_account_bic: string;
+        image: string;
+      };
+    }>,
     reply: FastifyReply
   ) => {
-    try { 
-      const { username, email, password, phone, description, address_id, tax_id, bank_account, bank_account_bic, image } = request.body;
+    try {
+      const {
+        username,
+        email,
+        password,
+        phone,
+        description,
+        address_id,
+        tax_id,
+        bank_account,
+        bank_account_bic,
+        image,
+      } = request.body;
 
       if (!username || !email || !password) {
         return reply.status(400).send({ message: "All fields required" });
@@ -140,7 +174,9 @@ const usersController = (prisma: PrismaClient) => ({
         include: { seller: true },
       });
 
-      const token = jwt.sign({ id: user.id, role: "seller" }, process.env.JWT_SECRET!, { expiresIn: "1d" });
+      const token = jwt.sign({ id: user.id, role: "seller" }, process.env.JWT_SECRET!, {
+        expiresIn: "1d",
+      });
       reply.setCookie("token", token, { httpOnly: true, sameSite: "strict" });
 
       return reply.status(201).send({ message: "Seller created", user });

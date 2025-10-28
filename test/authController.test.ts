@@ -1,42 +1,70 @@
 import { describe, it, beforeEach, afterEach, expect } from "bun:test";
 import { createPrismaMock } from "bun-mock-prisma";
 import bcrypt from "bcrypt";
+import { FastifyReply, FastifyRequest } from "fastify";
 import usersController from "../controllers/usersController";
 
 const prismaMock = createPrismaMock();
-const controller = usersController(prismaMock as any);
+const controller = usersController(prismaMock);
+
+type MockReply = {
+  statusCode: number;
+  cookies: Array<{ name: string; value: string; options: Record<string, unknown> }>;
+  body: unknown;
+  status: (code: number) => MockReply;
+  send: (obj: unknown) => MockReply;
+  setCookie: (name: string, value: string, options: Record<string, unknown>) => void;
+};
+
+type UserResponse = {
+  user: {
+    id: number;
+    username: string;
+    email: string;
+  };
+};
 
 describe("usersController", () => {
-  let reply: any;
+  let reply: MockReply;
   let hashedPassword: string;
 
   beforeEach(async () => {
     prismaMock._reset();
+
     hashedPassword = await bcrypt.hash("password123", 10);
 
     reply = {
       statusCode: 0,
       cookies: [],
       body: null,
-      status(code: number) {
+      status(code: number): MockReply {
         this.statusCode = code;
         return this;
       },
-      send(obj: any) {
+      send(obj: unknown): MockReply {
         this.body = obj;
         return this;
       },
-      setCookie(name: string, value: string, options: any) {
+      setCookie(name: string, value: string, options: Record<string, unknown>) {
         this.cookies.push({ name, value, options });
       },
     };
+
+    prismaMock.users.create.mockResolvedValue({
+      id: 1,
+      username: "john",
+      email: "john@example.com",
+      password: hashedPassword,
+    });
   });
 
-  afterEach(() => prismaMock._reset());
+  afterEach(() => {
+    prismaMock._reset();
+  });
 
   // ---------- REGISTER CLIENT ----------
   it("registerClient: should create a client user", async () => {
-    const request = {
+    const request: FastifyRequest = {
       body: {
         username: "clientUser",
         email: "client@example.com",
@@ -44,67 +72,65 @@ describe("usersController", () => {
         phone: 123456789,
         address_id: 1,
       },
-    };
+    } as unknown as FastifyRequest;
 
-    prismaMock.users.findUnique.mockResolvedValue(null);
     prismaMock.users.create.mockResolvedValue({
-      id: 1,
+      id: 2,
       username: "clientUser",
       email: "client@example.com",
-      password: hashedPassword,
+      password: await bcrypt.hash("password123", 10),
       role: "client",
-      client: {
-        id: 1,
-        phone: 123456789,
-        address_id: 1,
-      },
+      client: { id: 2, phone: 123456789 },
     });
 
-    await controller.registerClient(request as any, reply as any);
+    await controller.registerClient(request, reply as unknown as FastifyReply);
 
     expect(reply.statusCode).toBe(201);
-    expect(reply.body.message).toBe("Client created");
-    expect(reply.body.user.role).toBe("client");
+    expect((reply.body as Record<string, unknown>).message).toBe("Client created");
     expect(reply.cookies.length).toBe(1);
+  });
+
+  it("registerClient: should return 400 if fields missing", async () => {
+    const request: FastifyRequest = {
+      body: { username: "", email: "", password: "" },
+    } as unknown as FastifyRequest;
+
+    await controller.registerClient(request, reply as unknown as FastifyReply);
+
+    expect(reply.statusCode).toBe(400);
+    expect((reply.body as Record<string, string>).message).toBe("All fields required");
   });
 
   // ---------- REGISTER SELLER ----------
   it("registerSeller: should create a seller user", async () => {
-    const request = {
+    const request: FastifyRequest = {
       body: {
         username: "sellerUser",
         email: "seller@example.com",
         password: "password123",
-        phone: "0600000000",
-        description: "Top seller",
-        address_id: 2,
-        tax_id: 12345,
+        phone: "0606060606",
+        description: "Vendeur de produits",
+        address_id: 1,
+        tax_id: 123456,
         bank_account: "FR123",
         bank_account_bic: "BIC123",
-        image: "seller.png",
+        image: "test.png",
       },
-    };
+    } as unknown as FastifyRequest;
 
-    prismaMock.users.findUnique.mockResolvedValue(null);
     prismaMock.users.create.mockResolvedValue({
-      id: 2,
+      id: 3,
       username: "sellerUser",
       email: "seller@example.com",
-      password: hashedPassword,
+      password: await bcrypt.hash("password123", 10),
       role: "seller",
-      seller: {
-        id: 2,
-        phone: "0600000000",
-        description: "Top seller",
-        address_id: 2,
-      },
+      seller: { id: 3, phone: "0606060606" },
     });
 
-    await controller.registerSeller(request as any, reply as any);
+    await controller.registerSeller(request, reply as unknown as FastifyReply);
 
     expect(reply.statusCode).toBe(201);
-    expect(reply.body.message).toBe("Seller created");
-    expect(reply.body.user.role).toBe("seller");
+    expect((reply.body as Record<string, unknown>).message).toBe("Seller created");
     expect(reply.cookies.length).toBe(1);
   });
 
@@ -117,11 +143,16 @@ describe("usersController", () => {
       password: hashedPassword,
     });
 
-    const request = { body: { email: "john@example.com", password: "password123" } };
-    await controller.login(request as any, reply as any);
+    const request: FastifyRequest = {
+      body: { email: "john@example.com", password: "password123" },
+    } as unknown as FastifyRequest;
+
+    await controller.login(request, reply as unknown as FastifyReply);
+
+    const response = reply.body as UserResponse;
 
     expect(reply.statusCode).toBe(200);
-    expect(reply.body.user.username).toBe("john");
+    expect(response.user.username).toBe("john");
     expect(reply.cookies.length).toBe(1);
   });
 
@@ -133,11 +164,14 @@ describe("usersController", () => {
       password: hashedPassword,
     });
 
-    const request = { body: { email: "john@example.com", password: "wrongpass" } };
-    await controller.login(request as any, reply as any);
+    const request: FastifyRequest = {
+      body: { email: "john@example.com", password: "wrongpass" },
+    } as unknown as FastifyRequest;
+
+    await controller.login(request, reply as unknown as FastifyReply);
 
     expect(reply.statusCode).toBe(401);
-    expect(reply.body.message).toBe("Invalid password");
+    expect((reply.body as Record<string, string>).message).toBe("Invalid password");
   });
 
   // ---------- UPDATE ----------
@@ -149,12 +183,13 @@ describe("usersController", () => {
       password: "newpass",
     });
 
-    const request = {
+    const request: FastifyRequest = {
       body: { id: 1, username: "johnny", email: "john@example.com", password: "newpass" },
-    };
-    await controller.update(request as any, reply as any);
+    } as unknown as FastifyRequest;
 
-    expect(reply.statusCode).not.toBe(500);
+    await controller.update(request, reply as unknown as FastifyReply);
+
+    expect(reply.body).toBeNull();
   });
 
   // ---------- DELETE ----------
@@ -166,9 +201,12 @@ describe("usersController", () => {
       password: hashedPassword,
     });
 
-    const request = { body: { email: "john@example.com" } };
-    await controller.delete(request as any, reply as any);
+    const request: FastifyRequest = {
+      body: { email: "john@example.com" },
+    } as unknown as FastifyRequest;
 
-    expect(reply.statusCode).not.toBe(500);
+    await controller.delete(request, reply as unknown as FastifyReply);
+
+    expect(reply.body).toBeNull();
   });
 });

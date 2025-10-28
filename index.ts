@@ -23,7 +23,7 @@ fastify.register(swagger, {
       url: "https://swagger.io",
       description: "Find more info here",
     },
-  host: `${process.env.API_URL || "localhost"}:${process.env.API_PORT || 8000}`,
+    host: `${process.env.API_URL || "localhost"}:${process.env.API_PORT || 8000}`,
     schemes: ["http", "https"],
     consumes: ["application/json"],
     produces: ["application/json"],
@@ -70,10 +70,10 @@ fastify.register(cookie);
 
 const start = async () => {
   try {
-  const port = Number(process.env.API_PORT) || 8000;
-  const host = process.env.API_URL || undefined;
-  await fastify.listen({ port, host });
-  console.log(`server listening on port ${port}`);
+    const port = Number(process.env.API_PORT) || 8000;
+    const host = process.env.API_URL || undefined;
+    await fastify.listen({ port, host });
+    console.log(`server listening on port ${port}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
