@@ -6,7 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
+  output   = "../generated/prisma/client"
 }
 
 datasource db {
@@ -49,7 +49,7 @@ model Sellers {
   update_at        DateTime @updatedAt
   description      String?
   address_id       Int?
-  tax_id           String?
+  tax_id           Int?
   bank_account     String?
   bank_account_bic String?
   image            String?
