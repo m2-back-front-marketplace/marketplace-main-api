@@ -1,22 +1,45 @@
 services:
   postgres:
-    image: postgres:18
-    restart: always
+    container_name: postgres_dashboard
+    image: postgres:latest
     environment:
-      - POSTGRES_DB=varketplace_db_${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      # On peut aussi préciser PGDATA pour plus de clarté
-      - PGDATA=/var/lib/postgresql/18/docker
-    ports:
-      - "${POSTGRES_PORT}:5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /data/postgres
     volumes:
-      - postgres_data:/var/lib/postgresql/18/docker
+      - postgres:/data/postgres
+    ports:
+      - '5435:5432'
+    networks:
+      - postgres
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 5s
-      timeout: 2s
-      retries: 20
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+  api:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: '${DATABASE_URL}'
+      FRONTEND_URL: '${FRONTEND_URL}'
+      JWT_SECRET: '${JWT_SECRET}'
+      COOKIE_SECRET: '${COOKIE_SECRET}'
+      PRISMA_SCHEMA_PATH: './prisma/schema.prisma'
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    networks:
+      - postgres
+
+networks:
+  postgres:
+    driver: bridge
 
 volumes:
-  postgres_data:
+  postgres:
