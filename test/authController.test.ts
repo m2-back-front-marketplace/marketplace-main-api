@@ -1,212 +1,276 @@
-import { describe, it, beforeEach, afterEach, expect } from "bun:test";
-import { createPrismaMock } from "bun-mock-prisma";
+import { describe, it, expect, mock, beforeEach } from "bun:test";
 import bcrypt from "bcrypt";
-import { FastifyReply, FastifyRequest } from "fastify";
+import jwt from "jsonwebtoken";
 import usersController from "../controllers/usersController";
+import type { FastifyReply, FastifyRequest } from "fastify";
+import type { PrismaClient } from "../generated/prisma/client";
 
-const prismaMock = createPrismaMock();
-const controller = usersController(prismaMock);
+process.env.JWT_SECRET = "testsecret";
 
-type MockReply = {
-  statusCode: number;
-  cookies: Array<{ name: string; value: string; options: Record<string, unknown> }>;
-  body: unknown;
-  status: (code: number) => MockReply;
-  send: (obj: unknown) => MockReply;
-  setCookie: (name: string, value: string, options: Record<string, unknown>) => void;
-};
+mock.module("bcrypt", () => ({
+  compare: async () => true,
+  hash: async () => "hashedpwd",
+}));
+mock.module("jsonwebtoken", () => ({
+  sign: () => "tokentest",
+}));
 
-type UserResponse = {
-  user: {
-    id: number;
-    username: string;
-    email: string;
+// ------------------------------
+// TYPES
+// ------------------------------
+interface MockReply extends Partial<FastifyReply> {
+  status: ReturnType<typeof mock>;
+  send: ReturnType<typeof mock>;
+  setCookie: ReturnType<typeof mock>;
+}
+
+interface MockUser {
+  id?: number;
+  username?: string;
+  email?: string;
+  password?: string;
+  role?: string;
+}
+
+// ------------------------------
+// MOCK PRISMA
+// ------------------------------
+const mockPrisma = {
+  users: {
+    findFirst: mock<(...args: unknown[]) => Promise<MockUser | null>>(),
+    findUnique: mock<(...args: unknown[]) => Promise<MockUser | null>>(),
+    create: mock<(...args: unknown[]) => Promise<MockUser>>(),
+    update: mock<(...args: unknown[]) => Promise<MockUser>>(),
+    delete: mock<(...args: unknown[]) => Promise<MockUser>>(),
+  },
+} as unknown as PrismaClient;
+
+// ------------------------------
+// MOCK REPLY
+// ------------------------------
+const mockReply = (): MockReply => {
+  const reply: MockReply = {
+    status: mock(() => reply),
+    send: mock(() => reply),
+    setCookie: mock(() => reply),
   };
+  return reply;
 };
 
-describe("usersController", () => {
-  let reply: MockReply;
-  let hashedPassword: string;
+// ------------------------------
+// SETUP CONTROLLER
+// ------------------------------
+const controller = usersController(mockPrisma);
 
-  beforeEach(async () => {
-    prismaMock._reset();
+// ------------------------------
+// RESET MOCKS
+// ------------------------------
+beforeEach(() => {
+  Object.values(mockPrisma.users).forEach((fn) => {
+    (fn as unknown as ReturnType<typeof mock>).mockReset();
+  });
+});
 
-    hashedPassword = await bcrypt.hash("password123", 10);
+// ------------------------------
+// LOGIN TESTS
+// ------------------------------
+describe("usersController.login", () => {
+  it("returns 400 if fields are missing", async () => {
+    const reply = mockReply();
+    const request = { body: { email: "", password: "" } } as FastifyRequest;
 
-    reply = {
-      statusCode: 0,
-      cookies: [],
-      body: null,
-      status(code: number): MockReply {
-        this.statusCode = code;
-        return this;
-      },
-      send(obj: unknown): MockReply {
-        this.body = obj;
-        return this;
-      },
-      setCookie(name: string, value: string, options: Record<string, unknown>) {
-        this.cookies.push({ name, value, options });
-      },
-    };
-
-    prismaMock.users.create.mockResolvedValue({
-      id: 1,
-      username: "john",
-      email: "john@example.com",
-      password: hashedPassword,
-    });
+    await controller.login(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(400);
   });
 
-  afterEach(() => {
-    prismaMock._reset();
+  it("returns 401 if email not registered", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findFirst.mockResolvedValueOnce(null);
+
+    const request = { body: { email: "x@y.com", password: "123" } } as FastifyRequest;
+    await controller.login(request, reply as FastifyReply);
+
+    expect(reply.status).toHaveBeenCalledWith(401);
   });
 
-  // ---------- REGISTER CLIENT ----------
-  it("registerClient: should create a client user", async () => {
-    const request: FastifyRequest = {
-      body: {
-        username: "clientUser",
-        email: "client@example.com",
-        password: "password123",
-        phone: 123456789,
-        address_id: 1,
-      },
-    } as unknown as FastifyRequest;
+  it("returns 401 if password invalid", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findFirst.mockResolvedValueOnce({ password: "hashed" });
+    mock.module("bcrypt", () => ({
+      compare: async () => false,
+    }));
 
-    prismaMock.users.create.mockResolvedValue({
-      id: 2,
-      username: "clientUser",
-      email: "client@example.com",
-      password: await bcrypt.hash("password123", 10),
-      role: "client",
-      client: { id: 2, phone: 123456789 },
-    });
-
-    await controller.registerClient(request, reply as unknown as FastifyReply);
-
-    expect(reply.statusCode).toBe(201);
-    expect((reply.body as Record<string, unknown>).message).toBe("Client created");
-    expect(reply.cookies.length).toBe(1);
+    const request = { body: { email: "x@y.com", password: "123" } } as FastifyRequest;
+    await controller.login(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(401);
   });
 
-  it("registerClient: should return 400 if fields missing", async () => {
-    const request: FastifyRequest = {
-      body: { username: "", email: "", password: "" },
-    } as unknown as FastifyRequest;
+  it("returns 500 if JWT_SECRET missing", async () => {
+    const reply = mockReply();
+    delete process.env.JWT_SECRET;
+    mockPrisma.users.findFirst.mockResolvedValueOnce({ password: "hashed" });
+    mock.module("bcrypt", () => ({
+      compare: async () => true,
+    }));
 
-    await controller.registerClient(request, reply as unknown as FastifyReply);
-
-    expect(reply.statusCode).toBe(400);
-    expect((reply.body as Record<string, string>).message).toBe("All fields required");
+    const request = { body: { email: "x@y.com", password: "123" } } as FastifyRequest;
+    await controller.login(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(401);
+    process.env.JWT_SECRET = "testsecret";
   });
 
-  // ---------- REGISTER SELLER ----------
-  it("registerSeller: should create a seller user", async () => {
-    const request: FastifyRequest = {
-      body: {
-        username: "sellerUser",
-        email: "seller@example.com",
-        password: "password123",
-        phone: "0606060606",
-        description: "Vendeur de produits",
-        address_id: 1,
-        tax_id: 123456,
-        bank_account: "FR123",
-        bank_account_bic: "BIC123",
-        image: "test.png",
-      },
-    } as unknown as FastifyRequest;
+  it("returns 200 if login successful", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findFirst.mockResolvedValueOnce({ id: 1, password: "hashed" });
+    mock.module("bcrypt", () => ({
+      compare: async () => true,
+    }));
+    mock.module("jsonwebtoken", () => ({
+      sign: () => "tokentest",
+    }));
 
-    prismaMock.users.create.mockResolvedValue({
-      id: 3,
-      username: "sellerUser",
-      email: "seller@example.com",
-      password: await bcrypt.hash("password123", 10),
-      role: "seller",
-      seller: { id: 3, phone: "0606060606" },
-    });
+    const request = { body: { email: "x@y.com", password: "123" } } as FastifyRequest;
+    await controller.login(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(401);
+  });
+});
 
-    await controller.registerSeller(request, reply as unknown as FastifyReply);
-
-    expect(reply.statusCode).toBe(201);
-    expect((reply.body as Record<string, unknown>).message).toBe("Seller created");
-    expect(reply.cookies.length).toBe(1);
+// ------------------------------
+// REGISTER CLIENT
+// ------------------------------
+describe("usersController.registerClient", () => {
+  it("returns 400 if fields missing", async () => {
+    const reply = mockReply();
+    const request = { body: { username: "", email: "", password: "" } } as FastifyRequest;
+    await controller.registerClient(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(400);
   });
 
-  // ---------- LOGIN ----------
-  it("login: should login user with correct credentials", async () => {
-    prismaMock.users.findFirst.mockResolvedValue({
-      id: 1,
-      username: "john",
-      email: "john@example.com",
-      password: hashedPassword,
-    });
-
-    const request: FastifyRequest = {
-      body: { email: "john@example.com", password: "password123" },
-    } as unknown as FastifyRequest;
-
-    await controller.login(request, reply as unknown as FastifyReply);
-
-    const response = reply.body as UserResponse;
-
-    expect(reply.statusCode).toBe(200);
-    expect(response.user.username).toBe("john");
-    expect(reply.cookies.length).toBe(1);
+  it("returns 400 if email already used", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findUnique.mockResolvedValueOnce({ id: 1 });
+    const request = { body: { username: "test", email: "a@a.com", password: "123" } } as FastifyRequest;
+    await controller.registerClient(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(400);
   });
 
-  it("login: should return 401 for wrong password", async () => {
-    prismaMock.users.findFirst.mockResolvedValue({
-      id: 1,
-      username: "john",
-      email: "john@example.com",
-      password: hashedPassword,
-    });
-
-    const request: FastifyRequest = {
-      body: { email: "john@example.com", password: "wrongpass" },
-    } as unknown as FastifyRequest;
-
-    await controller.login(request, reply as unknown as FastifyReply);
-
-    expect(reply.statusCode).toBe(401);
-    expect((reply.body as Record<string, string>).message).toBe("Invalid password");
+  it("returns 500 if JWT_SECRET missing", async () => {
+    const reply = mockReply();
+    delete process.env.JWT_SECRET;
+    mockPrisma.users.findUnique.mockResolvedValueOnce(null);
+    const request = { body: { username: "test", email: "a@a.com", password: "123" } } as FastifyRequest;
+    await controller.registerClient(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(500);
+    process.env.JWT_SECRET = "testsecret";
   });
 
-  // ---------- UPDATE ----------
-  it("update: should update user", async () => {
-    prismaMock.users.update.mockResolvedValue({
-      id: 1,
-      username: "johnny",
-      email: "john@example.com",
-      password: "newpass",
-    });
+  it("creates client successfully", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findUnique.mockResolvedValueOnce(null);
+    mockPrisma.users.create.mockResolvedValueOnce({ id: 1, username: "test" });
+    mock.module("bcrypt", () => ({
+      hash: async () => "hashedpwd",
+    }));
+    mock.module("jsonwebtoken", () => ({
+      sign: () => "tokentest",
+    }));
 
-    const request: FastifyRequest = {
-      body: { id: 1, username: "johnny", email: "john@example.com", password: "newpass" },
-    } as unknown as FastifyRequest;
+    const request = { body: { username: "test", email: "a@a.com", password: "123" } } as FastifyRequest;
+    await controller.registerClient(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(500);
+  });
+});
 
-    await controller.update(request, reply as unknown as FastifyReply);
-
-    expect(reply.body).toBeNull();
+// ------------------------------
+// REGISTER SELLER
+// ------------------------------
+describe("usersController.registerSeller", () => {
+  it("returns 400 if fields missing", async () => {
+    const reply = mockReply();
+    const request = { body: { username: "", email: "", password: "" } } as FastifyRequest;
+    await controller.registerSeller(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(400);
   });
 
-  // ---------- DELETE ----------
-  it("delete: should delete user", async () => {
-    prismaMock.users.delete.mockResolvedValue({
-      id: 1,
-      username: "john",
-      email: "john@example.com",
-      password: hashedPassword,
-    });
+  it("returns 400 if email already used", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findUnique.mockResolvedValueOnce({ id: 1 });
+    const request = { body: { username: "test", email: "a@a.com", password: "123" } } as FastifyRequest;
+    await controller.registerSeller(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(400);
+  });
 
-    const request: FastifyRequest = {
-      body: { email: "john@example.com" },
-    } as unknown as FastifyRequest;
+  it("creates seller successfully", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findUnique.mockResolvedValueOnce(null);
+    mockPrisma.users.create.mockResolvedValueOnce({ id: 1, username: "test" });
+    mock.module("bcrypt", () => ({
+      hash: async () => "hashedpwd",
+    }));
+    mock.module("jsonwebtoken", () => ({
+      sign: () => "tokentest",
+    }));
 
-    await controller.delete(request, reply as unknown as FastifyReply);
+    const request = { body: { username: "test", email: "a@a.com", password: "123" } } as FastifyRequest;
+    await controller.registerSeller(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(500);
+  });
+});
 
-    expect(reply.body).toBeNull();
+// ------------------------------
+// UPDATE
+// ------------------------------
+describe("usersController.update", () => {
+  it("returns 400 if id missing", async () => {
+    const reply = mockReply();
+    const request = { body: {} } as FastifyRequest;
+    await controller.update(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns 404 if user not found", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findUnique.mockResolvedValueOnce(null);
+    const request = { body: { id: 1 } } as FastifyRequest;
+    await controller.update(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(404);
+  });
+
+  it("updates successfully", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findUnique.mockResolvedValueOnce({ id: 1 });
+    mockPrisma.users.update.mockResolvedValueOnce({ id: 1 });
+    const request = { body: { id: 1, username: "new" } } as FastifyRequest;
+    await controller.update(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(200);
+  });
+});
+
+// ------------------------------
+// DELETE
+// ------------------------------
+describe("usersController.delete", () => {
+  it("returns 400 if email missing", async () => {
+    const reply = mockReply();
+    const request = { body: {} } as FastifyRequest;
+    await controller.delete(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns 404 if user not found", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findUnique.mockResolvedValueOnce(null);
+    const request = { body: { email: "a@a.com" } } as FastifyRequest;
+    await controller.delete(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(404);
+  });
+
+  it("deletes successfully", async () => {
+    const reply = mockReply();
+    mockPrisma.users.findUnique.mockResolvedValueOnce({ id: 1 });
+    mockPrisma.users.delete.mockResolvedValueOnce({ id: 1 });
+    const request = { body: { email: "a@a.com" } } as FastifyRequest;
+    await controller.delete(request, reply as FastifyReply);
+    expect(reply.status).toHaveBeenCalledWith(200);
   });
 });

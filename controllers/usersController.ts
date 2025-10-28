@@ -18,38 +18,28 @@ const usersController = (prisma: PrismaClient) => ({
         return reply.status(400).send({ message: "All fields are required" });
       }
 
-      const user = await prisma.users.findFirst({
-        where: {
-          email,
-        },
-        orderBy: {
-          id: "asc",
-        },
-      });
-
+      const user = await prisma.users.findFirst({ where: { email } });
       if (!user) {
         return reply.status(401).send({ message: "Email not registered" });
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
-
       if (!isPasswordValid) {
         return reply.status(401).send({ message: "Invalid password" });
       }
 
       if (!process.env.JWT_SECRET) {
-        return reply.status(400).send({ message: "JWT secret not defined in .env" });
+        return reply.status(500).send({ message: "JWT secret not defined" });
       }
 
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET!, {
-        expiresIn: "1d",
-      });
+      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
       reply.setCookie("token", token, {
         httpOnly: true,
         sameSite: "strict",
         path: "/",
       });
+
       return reply.status(200).send({ user });
     } catch (error) {
       console.error("error login controller", error);
@@ -63,8 +53,8 @@ const usersController = (prisma: PrismaClient) => ({
         username: string;
         email: string;
         password: string;
-        phone: number;
-        address_id: number;
+        phone?: number;
+        address_id?: number;
       };
     }>,
     reply: FastifyReply
@@ -79,6 +69,10 @@ const usersController = (prisma: PrismaClient) => ({
       const existing = await prisma.users.findUnique({ where: { email } });
       if (existing) {
         return reply.status(400).send({ message: "Email already used" });
+      }
+
+      if (!process.env.JWT_SECRET) {
+        return reply.status(500).send({ message: "JWT secret not defined" });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -99,14 +93,15 @@ const usersController = (prisma: PrismaClient) => ({
         include: { client: true },
       });
 
-      const token = jwt.sign({ id: user.id, role: "client" }, process.env.JWT_SECRET!, {
+      const token = jwt.sign({ id: user.id, role: "client" }, process.env.JWT_SECRET, {
         expiresIn: "1d",
       });
+
       reply.setCookie("token", token, { httpOnly: true, sameSite: "strict" });
 
       return reply.status(201).send({ message: "Client created", user });
     } catch (error) {
-      console.error(error);
+      console.error("error registerClient", error);
       return reply.status(500).send({ message: "Internal server error" });
     }
   },
@@ -117,13 +112,13 @@ const usersController = (prisma: PrismaClient) => ({
         username: string;
         email: string;
         password: string;
-        phone: string;
-        description: string;
-        address_id: number;
-        tax_id: number;
-        bank_account: string;
-        bank_account_bic: string;
-        image: string;
+        phone?: string;
+        description?: string;
+        address_id?: number;
+        tax_id?: number;
+        bank_account?: string;
+        bank_account_bic?: string;
+        image?: string;
       };
     }>,
     reply: FastifyReply
@@ -151,6 +146,10 @@ const usersController = (prisma: PrismaClient) => ({
         return reply.status(400).send({ message: "Email already used" });
       }
 
+      if (!process.env.JWT_SECRET) {
+        return reply.status(500).send({ message: "JWT secret not defined" });
+      }
+
       const hashedPassword = await bcrypt.hash(password, 10);
 
       const user = await prisma.users.create({
@@ -174,62 +173,66 @@ const usersController = (prisma: PrismaClient) => ({
         include: { seller: true },
       });
 
-      const token = jwt.sign({ id: user.id, role: "seller" }, process.env.JWT_SECRET!, {
+      const token = jwt.sign({ id: user.id, role: "seller" }, process.env.JWT_SECRET, {
         expiresIn: "1d",
       });
+
       reply.setCookie("token", token, { httpOnly: true, sameSite: "strict" });
 
       return reply.status(201).send({ message: "Seller created", user });
     } catch (error) {
-      console.error(error);
+      console.error("error registerSeller", error);
       return reply.status(500).send({ message: "Internal server error" });
     }
   },
 
   update: async (
-    request: FastifyRequest<{
-      Body: { id: number; username: string; email: string; password: string };
-    }>,
+    request: FastifyRequest<{ Body: { id?: number; username?: string; email?: string; password?: string } }>,
     reply: FastifyReply
   ) => {
     try {
       const { id, username, email, password } = request.body;
       if (!id) {
-        return reply.status(401).send({ message: "User not connected or no id found" });
+        return reply.status(400).send({ message: "User ID required" });
       }
-      const user = await prisma.users.update({
-        where: {
-          id: id,
-        },
-        data: {
-          username: username,
-          email: email,
-          password: password,
-        },
+
+      const existing = await prisma.users.findUnique({ where: { id } });
+      if (!existing) {
+        return reply.status(404).send({ message: "User not found" });
+      }
+
+      await prisma.users.update({
+        where: { id },
+        data: { username, email, password },
       });
-      if (!user) {
-        return reply.status(401).send({ message: "User not found" });
-      }
+
+      return reply.status(200).send({ message: "User updated" });
     } catch (error) {
       console.error("error update controller", error);
-      return reply.status(500).send({ message: "User not found" });
+      return reply.status(500).send({ message: "Internal server error" });
     }
   },
 
-  delete: async (request: FastifyRequest<{ Body: { email: string } }>, reply: FastifyReply) => {
+  delete: async (
+    request: FastifyRequest<{ Body: { email?: string } }>,
+    reply: FastifyReply
+  ) => {
     try {
       const { email } = request.body;
       if (!email) {
-        return reply.status(401).send({ message: "Email required" });
+        return reply.status(400).send({ message: "Email required" });
       }
-      await prisma.users.delete({
-        where: {
-          email: email,
-        },
-      });
+
+      const existing = await prisma.users.findUnique({ where: { email } });
+      if (!existing) {
+        return reply.status(404).send({ message: "User not found" });
+      }
+
+      await prisma.users.delete({ where: { email } });
+      return reply.status(200).send({ message: "User deleted" });
     } catch (error) {
       console.error("error delete controller", error);
-      return reply.status(500).send({ message: "User not found" });
+      return reply.status(500).send({ message: "Internal server error" });
     }
   },
 });
