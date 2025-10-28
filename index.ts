@@ -1,30 +1,33 @@
 import Fastify from "fastify";
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
+import routes from "./routes/route.ts";
+import cors from "@fastify/cors";
+import cookie from "@fastify/cookie";
+import dotenv from "dotenv";
 
+dotenv.config();
 
 const fastify = Fastify({
-  logger: true
+  logger: true,
 });
 
 fastify.register(swagger, {
   swagger: {
     info: {
-      title: "Documento API",
-      description: "API pour l'application Documento",
+      title: "Varketplace API",
+      description: "API pour Varketplace",
       version: "1.0.0",
     },
     externalDocs: {
       url: "https://swagger.io",
       description: "Find more info here",
     },
-    host: `${process.env.API_URL || "localhost"}:8000`,
+    host: `${process.env.API_URL || "localhost"}:${process.env.API_PORT || 8000}`,
     schemes: ["http", "https"],
     consumes: ["application/json"],
     produces: ["application/json"],
-    tags: [
-      { name: "user", description: "User related endpoints" },
-    ],
+    tags: [{ name: "user", description: "User related endpoints" }],
     securityDefinitions: {
       cookieAuth: {
         type: "apiKey",
@@ -44,14 +47,33 @@ fastify.register(swaggerUI, {
   },
 });
 
+fastify.register(routes);
 
 fastify.get("/health", async (request, reply) => {
-  reply.send({health: "api is up and healthy"});
+  reply.send({ health: "api is up and healthy" });
 });
+
+fastify.register(cors, {
+  origin: (origin, cb) => {
+    const allowedOrigins = [process.env.FRONTEND_URL];
+    if (allowedOrigins.includes(origin) || !origin) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error("Not allowed"), false);
+  },
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+});
+
+fastify.register(cookie);
 
 const start = async () => {
   try {
-    await fastify.listen({port: 8000});
+    const port = Number(process.env.API_PORT) || 8000;
+    const host = process.env.API_URL || undefined;
+    await fastify.listen({ port, host });
+    console.log(`server listening on port ${port}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
@@ -59,3 +81,5 @@ const start = async () => {
 };
 
 await start();
+
+export default fastify;
