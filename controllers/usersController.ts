@@ -1,5 +1,4 @@
 import { PrismaClient } from "../generated/prisma/client";
-import type { FastifyRequest, FastifyReply } from "fastify";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -187,7 +186,9 @@ const usersController = (prisma: PrismaClient) => ({
   },
 
   update: async (
-    request: FastifyRequest<{ Body: { id?: number; username?: string; email?: string; password?: string } }>,
+    request: FastifyRequest<{
+      Body: { id?: number; username?: string; email?: string; password?: string };
+    }>,
     reply: FastifyReply
   ) => {
     try {
@@ -213,10 +214,7 @@ const usersController = (prisma: PrismaClient) => ({
     }
   },
 
-  delete: async (
-    request: FastifyRequest<{ Body: { email?: string } }>,
-    reply: FastifyReply
-  ) => {
+  delete: async (request: FastifyRequest<{ Body: { email?: string } }>, reply: FastifyReply) => {
     try {
       const { email } = request.body;
       if (!email) {
