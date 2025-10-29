@@ -29,7 +29,7 @@ model Users {
 
 model Clients {
   id         Int      @id
-  phone      Int?
+  phone      String?
   created_at DateTime @default(now())
   update_at  DateTime @updatedAt
   address_id Int?

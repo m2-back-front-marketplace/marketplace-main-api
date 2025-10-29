@@ -12,7 +12,7 @@ CREATE TABLE "Users" (
 -- CreateTable
 CREATE TABLE "Clients" (
     "id" INTEGER NOT NULL,
-    "phone" INTEGER,
+    "phone" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "update_at" TIMESTAMP(3) NOT NULL,
     "address_id" INTEGER,
