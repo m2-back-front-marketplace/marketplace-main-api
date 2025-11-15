@@ -177,3 +177,5 @@ dist
 /generated/prisma
 
 .env.test
+
+/test

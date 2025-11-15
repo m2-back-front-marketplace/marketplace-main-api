@@ -9,7 +9,7 @@ const controller = userController(prisma);
 const userRoutes = (fastify: FastifyInstance) => {
   fastify.post("/registerClient", {
     schema: {
-      tags: ["client"],
+      tags: ["User"],
       description: "Register a new client",
       body: {
         type: "object",
@@ -18,7 +18,7 @@ const userRoutes = (fastify: FastifyInstance) => {
           username: { type: "string" },
           email: { type: "string", format: "email" },
           password: { type: "string", minLength: 6 },
-          phone: { type: "number" },
+          phone: { type: "string" },
           address_id: { type: "number" },
         },
       },
@@ -28,7 +28,7 @@ const userRoutes = (fastify: FastifyInstance) => {
 
   fastify.post("/registerSeller", {
     schema: {
-      tags: ["seller"],
+      tags: ["User"],
       description: "Refister a new seller",
       body: {
         type: "object",
@@ -36,8 +36,9 @@ const userRoutes = (fastify: FastifyInstance) => {
         properties: {
           username: { type: "string" },
           email: { type: "string", format: "email" },
+          description: {type: "string"},
           password: { type: "string", minLength: 6 },
-          phone: { type: "number" },
+          phone: { type: "string" },
           address_id: { type: "number" },
           tax_id: { type: "number" },
           bank_account: { type: "string" },
@@ -51,7 +52,7 @@ const userRoutes = (fastify: FastifyInstance) => {
 
   fastify.post("/login", {
     schema: {
-      tags: ["user"],
+      tags: ["User"],
       description: "Log in a user",
       body: {
         type: "object",
@@ -67,7 +68,7 @@ const userRoutes = (fastify: FastifyInstance) => {
 
   fastify.delete("/delete", {
     schema: {
-      tags: ["user"],
+      tags: ["User"],
       description: "Delete current user",
       security: [{ cookieAuth: [] }],
     },
@@ -77,7 +78,7 @@ const userRoutes = (fastify: FastifyInstance) => {
 
   fastify.put("/update", {
     schema: {
-      tags: ["user"],
+      tags: ["User"],
       description: "Update current user",
       security: [{ cookieAuth: [] }],
       body: {
