@@ -36,7 +36,7 @@ const userRoutes = (fastify: FastifyInstance) => {
         properties: {
           username: { type: "string" },
           email: { type: "string", format: "email" },
-          description: {type: "string"},
+          description: { type: "string" },
           password: { type: "string", minLength: 6 },
           phone: { type: "string" },
           address_id: { type: "number" },

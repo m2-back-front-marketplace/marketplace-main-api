@@ -40,7 +40,9 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write .",
     "dev": "bun run index.ts",
-    "test": "test"
+    "test": "test",
+    "seed": "bun run prisma/seed.ts",
+    "postinstall": "prisma generate"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
