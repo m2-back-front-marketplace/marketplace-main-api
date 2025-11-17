@@ -15,13 +15,13 @@ const productRoutes = (fastify: FastifyInstance) => {
         type: "object",
         required: ["name", "price", "quantity"],
         properties: {
-          name: { type: "string"},
-          description: {type: "string"},
-          price: {type: "number"},
-          quantity: {type: "number"},
-          image: {type: "string"},
-          seller_id: {type: "number" },
-          discount_id: {type: "number"}
+          name: { type: "string" },
+          description: { type: "string" },
+          price: { type: "number" },
+          quantity: { type: "number" },
+          image: { type: "string" },
+          seller_id: { type: "number" },
+          discount_id: { type: "number" },
         },
       },
     },
@@ -43,30 +43,30 @@ const productRoutes = (fastify: FastifyInstance) => {
       body: {
         type: "object",
         properties: {
-          name: {type: "string"},
-          description: {type: "string"},
-          price: {type: "number"},
-          quantity: {type: "number"},
-          image: {type: "string"},
-          discount_id: {type: "number"}
-        }
-      }
+          name: { type: "string" },
+          description: { type: "string" },
+          price: { type: "number" },
+          quantity: { type: "number" },
+          image: { type: "string" },
+          discount_id: { type: "number" },
+        },
+      },
     },
     onRequest: [authenticate],
     handler: controller.updateProduct,
   });
 
-  fastify.delete("/delete/:id",{
+  fastify.delete("/delete/:id", {
     schema: {
       tags: ["Product"],
       description: "delete product",
       params: {
         type: "object",
         properties: {
-          id: {type: "number"},
+          id: { type: "number" },
         },
         required: ["id"],
-      }
+      },
     },
     onRequest: [authenticate],
     handler: controller.deleteProduct,
