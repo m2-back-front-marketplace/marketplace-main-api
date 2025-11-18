@@ -36,7 +36,7 @@ const authenticate = async (request: FastifyRequest, reply: FastifyReply) => {
     request.user = { id: user.id };
   } catch (err) {
     // Catch JWT errors like 'TokenExpiredError' or 'JsonWebTokenError'
-    return reply.code(401).send({ error: "Invalid or expired token." });
+    return reply.code(401).send({ error: "Invalid or expired token.", err });
   }
 };
 
