@@ -7,8 +7,10 @@ type PurchaseParams = { purchaseId: string };
 const purchaseController = (prisma: PrismaClient) => ({
   // Create a new purchase from the cart
   createPurchase: async (request: FastifyRequest, reply: FastifyReply) => {
-    // const userId = request.user.id;
-    const userId = 1; // FIXME: replace with request.user.id
+    if (!request.user) {
+      return reply.status(401).send({ message: "Authentication required." });
+    }
+    const userId = request.user.id;
 
     try {
       const cart = await prisma.cart.findFirst({
@@ -65,8 +67,10 @@ const purchaseController = (prisma: PrismaClient) => ({
 
   // Get user's purchase history
   getPurchaseHistory: async (request: FastifyRequest, reply: FastifyReply) => {
-    // const userId = request.user.id;
-    const userId = 1; // FIXME: replace with request.user.id
+    if (!request.user) {
+      return reply.status(401).send({ message: "Authentication required." });
+    }
+    const userId = request.user.id;
 
     try {
       const purchases = await prisma.purchase.findMany({
@@ -95,8 +99,10 @@ const purchaseController = (prisma: PrismaClient) => ({
     request: FastifyRequest<{ Params: { status: string } }>,
     reply: FastifyReply
   ) => {
-    // const userId = request.user.id;
-    const userId = 1; // FIXME: replace with request.user.id
+    if (!request.user) {
+      return reply.status(401).send({ message: "Authentication required." });
+    }
+    const userId = request.user.id;
     const { status } = request.params;
 
     const upperCaseStatus = status.toUpperCase();
@@ -104,7 +110,7 @@ const purchaseController = (prisma: PrismaClient) => ({
     if (upperCaseStatus !== "PENDING" && upperCaseStatus !== "COMPLETED") {
       return reply
         .status(400)
-        .send({ message: "Invalid status. Must be \"pending\" or \"completed\"." });
+        .send({ message: "Invalid status. Must be 'pending' or 'completed'." });
     }
 
     try {
@@ -137,8 +143,10 @@ const purchaseController = (prisma: PrismaClient) => ({
     request: FastifyRequest<{ Params: PurchaseParams }>,
     reply: FastifyReply
   ) => {
-    // const userId = request.user.id;
-    const userId = 1; // FIXME: replace with request.user.id
+    if (!request.user) {
+      return reply.status(401).send({ message: "Authentication required." });
+    }
+    const userId = request.user.id;
     const { purchaseId } = request.params;
 
     try {
