@@ -1,7 +1,4 @@
-import { PrismaClient } from "../generated/prisma/client";
 import type { FastifyReply, FastifyRequest } from "fastify";
-
-const prisma = new PrismaClient();
 
 export enum UserRole {
   ADMIN = "admin",
@@ -30,36 +27,19 @@ export const requireRole = (allowedRoles: UserRole[]) => {
         });
       }
 
-      const user = await prisma.users.findUnique({
-        where: { id: request.user.id },
-        select: {
-          id: true,
-          role: true,
-          email: true,
-          username: true,
-        },
-      });
-
-      if (!user) {
+      if (!request.user.role) {
         return reply.code(401).send({
-          error: "User not found",
-          message: "The authenticated user no longer exists.",
+          error: "Invalid authentication",
+          message: "User role information is missing.",
         });
       }
 
-      if (!allowedRoles.includes(user.role as UserRole)) {
+      if (!allowedRoles.includes(request.user.role as UserRole)) {
         return reply.code(403).send({
           error: "Forbidden",
-          message: `Access denied. Required role(s): ${allowedRoles.join(", ")}. Your role: ${user.role}`,
+          message: `Access denied. Required role(s): ${allowedRoles.join(", ")}. Your role: ${request.user.role}`,
         });
       }
-
-      (request as AuthenticatedRequest).user = {
-        id: user.id,
-        role: user.role,
-        email: user.email,
-        username: user.username,
-      };
     } catch (err) {
       console.error("Role verification error:", err);
       return reply.code(500).send({
