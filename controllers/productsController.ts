@@ -1,5 +1,6 @@
 import { PrismaClient } from "../generated/prisma/client";
 import type { FastifyRequest, FastifyReply } from "fastify";
+import { uploadStream } from "../services/cloudinaryService";
 
 const productsController = (prisma: PrismaClient) => ({
   createProduct: async (
@@ -9,7 +10,6 @@ const productsController = (prisma: PrismaClient) => ({
         description: string;
         price: number;
         quantity: number;
-        image: string;
         approuved: string;
         seller_id: number;
         discount_id: number;
@@ -24,7 +24,6 @@ const productsController = (prisma: PrismaClient) => ({
         description,
         price,
         quantity,
-        image,
         approuved,
         seller_id,
         discount_id,
@@ -42,7 +41,6 @@ const productsController = (prisma: PrismaClient) => ({
           description,
           price,
           quantity,
-          image,
           approuved,
           seller: {
             connect: { id: seller_id },
@@ -78,7 +76,6 @@ const productsController = (prisma: PrismaClient) => ({
         description: string;
         price: number;
         quantity: number;
-        image: string;
         approuved: string;
         discount_id: number;
         categories_id: number[];
@@ -88,7 +85,7 @@ const productsController = (prisma: PrismaClient) => ({
   ) => {
     try {
       const productId = request.params.id;
-      const { name, description, price, quantity, image, approuved, discount_id, categories_id } =
+      const { name, description, price, quantity, approuved, discount_id, categories_id } =
         request.body;
       const existingProduct = await prisma.products.findUnique({
         where: {
@@ -108,12 +105,11 @@ const productsController = (prisma: PrismaClient) => ({
           description,
           price,
           quantity,
-          image,
           approuved,
           discount: discount_id
             ? {
-              connect: { id: discount_id },
-            }
+                connect: { id: discount_id },
+              }
             : { disconnect: true },
         },
       });
@@ -135,20 +131,60 @@ const productsController = (prisma: PrismaClient) => ({
     }
   },
 
+  uploadProductImage: async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const productId = parseInt(request.params.id, 10);
+      const data = await request.file();
+
+      if (!data) {
+        return reply.status(400).send({ message: "No file uploaded." });
+      }
+
+      // Check if product exists
+      const product = await prisma.products.findUnique({ where: { id: productId } });
+      if (!product) {
+        return reply.status(404).send({ message: "Product not found." });
+      }
+
+      const buffer = await data.toBuffer();
+      const uploadResult = await uploadStream(buffer);
+
+      const image = await prisma.productImage.create({
+        data: {
+          url: uploadResult.secure_url,
+          product_id: productId,
+        },
+      });
+
+      return reply.status(201).send({ message: "Image uploaded successfully", image });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      return reply.status(500).send({ message: "Internal server error" });
+    }
+  },
+
   deleteProduct: async (
     request: FastifyRequest<{ Params: { id: number } }>,
     reply: FastifyReply
   ) => {
     try {
       const productId = request.params.id;
-      if (!productId) {
+
+      const existingProduct = await prisma.products.findUnique({ where: { id: productId } });
+      if (!existingProduct) {
         return reply.status(404).send({ message: "product not found or doesnt existe" });
       }
+
       await prisma.products.delete({
         where: {
           id: productId,
         },
       });
+      // The `onDelete: Cascade` in the schema will handle deleting related ProductImage entries
+      return reply.status(204).send();
     } catch (error) {
       console.error("eroor while deleting product", error);
       return reply.status(500).send({ message: "Internal server errro" });
