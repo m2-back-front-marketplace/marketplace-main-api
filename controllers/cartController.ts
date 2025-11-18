@@ -1,217 +1,188 @@
 import { PrismaClient } from "../generated/prisma/client";
 import type { FastifyRequest, FastifyReply } from "fastify";
 
+// Define types for request parts
+type CartItemParams = { itemId: string };
+type AddToCartBody = { productId: number; quantity: number };
+type UpdateCartItemBody = { quantity: number };
+
 const cartController = (prisma: PrismaClient) => ({
-  getCartByClientId: async (
-    request: FastifyRequest<{
-      Params: { clientId: number };
-    }>,
-    reply: FastifyReply
-  ) => {
+  // Get user's cart
+  getCart: async (request: FastifyRequest, reply: FastifyReply) => {
+    // const userId = request.user.id;
+    const userId = 1; // FIXME: replace with request.user.id
     try {
-      const clientId = request.params.clientId;
-      const cartItems = await prisma.cart.findMany({
-        where: {
-          client_id: clientId,
-        },
+      const cart = await prisma.cart.findFirst({
+        where: { client_id: userId },
         include: {
-          product_item: {
+          items: {
             include: {
               product: true,
             },
           },
         },
       });
-      return reply.status(200).send(cartItems);
+
+      if (!cart) {
+        return reply.status(404).send({ message: "Cart not found" });
+      }
+
+      return reply.status(200).send(cart);
     } catch (error) {
-      console.error("Error while getting cart", error);
-      return reply.status(500).send({ message: "Internal server error" });
+      console.error("error getCart controller", error);
+      return reply.status(500).send({ message: "Failed to get cart", error });
     }
   },
 
-  addProductToCart: async (
-    request: FastifyRequest<{
-      Body: {
-        clientId: number;
-        productId: number;
-        quantity: number;
-      };
-    }>,
-    reply: FastifyReply
-  ) => {
-    try {
-      const { clientId, productId, quantity } = request.body;
+  // Add item to cart or update quantity
+  addToCart: async (request: FastifyRequest<{ Body: AddToCartBody }>, reply: FastifyReply) => {
+    // const userId = request.user.id;
+    const userId = 1; // FIXME: replace with request.user.id
+    const { productId, quantity } = request.body;
 
-      const client = await prisma.clients.findUnique({
-        where: { id: clientId },
+    if (!productId || !quantity || quantity <= 0) {
+      return reply
+        .status(400)
+        .send({ message: "Invalid request: productId and a positive quantity are required." });
+    }
+
+    try {
+      let cart = await prisma.cart.findFirst({
+        where: { client_id: userId },
       });
 
-      if (!client) {
-        return reply.status(404).send({ message: "Client not found" });
+      if (!cart) {
+        cart = await prisma.cart.create({
+          data: { client_id: userId },
+        });
       }
 
-      const existingCartItem = await prisma.cart.findFirst({
+      const existingCartItem = await prisma.cartItem.findFirst({
         where: {
-          client_id: clientId,
-          product_item: {
-            product_id: productId,
-          },
+          cart_id: cart.id,
+          product_id: productId,
         },
       });
 
       if (existingCartItem) {
-        const updatedProductItem = await prisma.product_item.update({
-          where: {
-            id: existingCartItem.product_item_id,
-          },
-          data: {
-            quantity: {
-              increment: quantity,
-            },
-          },
+        // Update quantity if item exists
+        const updatedItem = await prisma.cartItem.update({
+          where: { id: existingCartItem.id },
+          data: { quantity: existingCartItem.quantity + quantity },
         });
-        return reply.status(200).send(updatedProductItem);
+        return reply.status(200).send(updatedItem);
       } else {
-        const productItem = await prisma.product_item.create({
+        // Add new item if it does not exist
+        const newItem = await prisma.cartItem.create({
           data: {
+            cart_id: cart.id,
             product_id: productId,
             quantity: quantity,
           },
         });
-
-        const cartItem = await prisma.cart.create({
-          data: {
-            client_id: clientId,
-            product_item_id: productItem.id,
-          },
-        });
-
-        return reply.status(201).send(cartItem);
+        return reply.status(201).send(newItem);
       }
     } catch (error) {
-      console.error("Error while adding product to cart", error);
-      return reply.status(500).send({ message: "Internal server error" });
+      console.error("error addToCart controller", error);
+      return reply.status(500).send({ message: "Failed to add item to cart", error });
     }
   },
 
-  removeProductFromCart: async (
-    request: FastifyRequest<{
-      Params: { clientId: number; productId: number };
-    }>,
+  // Update item quantity in cart
+  updateCartItemQuantity: async (
+    request: FastifyRequest<{ Params: CartItemParams; Body: UpdateCartItemBody }>,
     reply: FastifyReply
   ) => {
-    try {
-      const { clientId, productId } = request.params;
+    // const userId = request.user.id;
+    const userId = 1; // FIXME: replace with request.user.id
+    const { itemId } = request.params;
+    const { quantity } = request.body;
 
-      const cartItem = await prisma.cart.findFirst({
-        where: {
-          client_id: clientId,
-          product_item: {
-            product_id: productId,
-          },
-        },
+    if (!quantity || quantity <= 0) {
+      return reply.status(400).send({ message: "A positive quantity is required." });
+    }
+
+    try {
+      const cart = await prisma.cart.findFirst({ where: { client_id: userId } });
+      if (!cart) {
+        return reply.status(404).send({ message: "Cart not found." });
+      }
+
+      const cartItem = await prisma.cartItem.findFirst({
+        where: { id: parseInt(itemId), cart_id: cart.id },
       });
 
       if (!cartItem) {
-        return reply.status(404).send({ message: "Product not found in cart" });
+        return reply.status(404).send({ message: "Item not found in cart." });
       }
 
-      await prisma.cart.delete({
-        where: {
-          id: cartItem.id,
-        },
+      const updatedItem = await prisma.cartItem.update({
+        where: { id: parseInt(itemId) },
+        data: { quantity },
       });
 
-      await prisma.product_item.delete({
-        where: {
-          id: cartItem.product_item_id,
-        },
+      return reply.status(200).send(updatedItem);
+    } catch (error) {
+      console.error("error updateCartItemQuantity controller", error);
+      return reply.status(500).send({ message: "Failed to update cart item quantity", error });
+    }
+  },
+
+  // Remove item from cart
+  removeFromCart: async (
+    request: FastifyRequest<{ Params: CartItemParams }>,
+    reply: FastifyReply
+  ) => {
+    // const userId = request.user.id;
+    const userId = 1; // FIXME: replace with request.user.id
+    const { itemId } = request.params;
+
+    try {
+      const cart = await prisma.cart.findFirst({ where: { client_id: userId } });
+      if (!cart) {
+        return reply.status(404).send({ message: "Cart not found." });
+      }
+
+      const cartItem = await prisma.cartItem.findFirst({
+        where: { id: parseInt(itemId), cart_id: cart.id },
+      });
+
+      if (!cartItem) {
+        return reply.status(404).send({ message: "Item not found in cart." });
+      }
+
+      await prisma.cartItem.delete({
+        where: { id: parseInt(itemId) },
       });
 
       return reply.status(204).send();
     } catch (error) {
-      console.error("Error while removing product from cart", error);
-      return reply.status(500).send({ message: "Internal server error" });
+      console.error("error removeFromCart controller", error);
+      return reply.status(500).send({ message: "Failed to remove item from cart", error });
     }
   },
 
-  updateProductQuantityInCart: async (
-    request: FastifyRequest<{
-      Params: { clientId: number; productId: number };
-      Body: {
-        quantity: number;
-      };
-    }>,
-    reply: FastifyReply
-  ) => {
+  // Clear the entire cart
+  clearCart: async (request: FastifyRequest, reply: FastifyReply) => {
+    // const userId = request.user.id;
+    const userId = 1; // FIXME: replace with request.user.id
     try {
-      const { clientId, productId } = request.params;
-      const { quantity } = request.body;
-
-      const cartItem = await prisma.cart.findFirst({
-        where: {
-          client_id: clientId,
-          product_item: {
-            product_id: productId,
-          },
-        },
+      const cart = await prisma.cart.findFirst({
+        where: { client_id: userId },
       });
 
-      if (!cartItem) {
-        return reply.status(404).send({ message: "Product not found in cart" });
+      if (!cart) {
+        return reply.status(404).send({ message: "Cart not found" });
       }
 
-      if (quantity === 0) {
-        await prisma.cart.delete({ where: { id: cartItem.id } });
-        await prisma.product_item.delete({ where: { id: cartItem.product_item_id } });
-        return reply.status(204).send();
-      } else {
-        const updatedProductItem = await prisma.product_item.update({
-          where: {
-            id: cartItem.product_item_id,
-          },
-          data: {
-            quantity: quantity,
-          },
-        });
-        return reply.status(200).send(updatedProductItem);
-      }
-    } catch (error) {
-      console.error("Error while updating product quantity in cart", error);
-      return reply.status(500).send({ message: "Internal server error" });
-    }
-  },
-
-  clearCart: async (
-    request: FastifyRequest<{
-      Params: { clientId: number };
-    }>,
-    reply: FastifyReply
-  ) => {
-    try {
-      const { clientId } = request.params;
-
-      const cartItems = await prisma.cart.findMany({
-        where: { client_id: clientId },
-        select: { product_item_id: true },
+      await prisma.cartItem.deleteMany({
+        where: { cart_id: cart.id },
       });
-
-      if (cartItems.length > 0) {
-        const productItemIds = cartItems.map((item) => item.product_item_id);
-
-        await prisma.cart.deleteMany({
-          where: { client_id: clientId },
-        });
-
-        await prisma.product_item.deleteMany({
-          where: { id: { in: productItemIds } },
-        });
-      }
 
       return reply.status(204).send();
     } catch (error) {
-      console.error("Error while clearing cart", error);
-      return reply.status(500).send({ message: "Internal server error" });
+      console.error("error clearCart controller", error);
+      return reply.status(500).send({ message: "Failed to clear cart", error });
     }
   },
 });

@@ -1,105 +1,132 @@
 import { PrismaClient } from "../generated/prisma/client";
-import bcrypt from "bcrypt";
+import { faker } from "@faker-js/faker";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Start seeding ...");
+  console.log("Start seeding...");
 
-  // 1. Create 5 categories
-  await prisma.category.createMany({
-    data: [
-      { name: "Electronics" },
-      { name: "Books" },
-      { name: "Clothing" },
-      { name: "Home" },
-      { name: "Sports" },
-    ],
-    skipDuplicates: true,
-  });
-  console.log("Created 5 categories");
-
-  const allCategories = await prisma.category.findMany();
-
-  // 2. Create users (client and seller)
-  const clientPassword = await bcrypt.hash("password123", 10);
-  const client = await prisma.users.create({
+  // Create Users: 1 Client, 1 Seller
+  const clientUser = await prisma.users.create({
     data: {
-      username: "testclient",
-      email: "client@test.com",
-      password: clientPassword,
-      role: "client",
+      username: "client_user",
+      email: "client@example.com",
+      password: "password123", // In a real app, hash this!
+      role: "CLIENT",
       client: {
-        create: {},
+        create: {
+          phone: "123456456",
+        },
       },
     },
   });
-  console.log("Created client user");
 
-  const sellerPassword = await bcrypt.hash("password123", 10);
-  const seller = await prisma.users.create({
+  const sellerUser = await prisma.users.create({
     data: {
-      username: "testseller",
-      email: "seller@test.com",
-      password: sellerPassword,
-      role: "seller",
+      username: "seller_user",
+      email: "seller@example.com",
+      password: "password123",
+      role: "SELLER",
       seller: {
-        create: {},
+        create: {
+          phone: "123456789",
+          description: faker.company.catchPhrase(),
+        },
       },
     },
   });
-  console.log("Created seller user");
+  console.log("Created client and seller users.");
 
-  // 3. Create 10 products
-  for (let i = 1; i <= 10; i++) {
+  // Create Categories
+  const categories = [];
+  for (let i = 0; i < 5; i++) {
+    const category = await prisma.category.create({
+      data: {
+        name: faker.commerce.department(),
+      },
+    });
+    categories.push(category);
+  }
+  console.log("Created 5 categories.");
+
+  // Create Products
+  const products = [];
+  for (let i = 0; i < 10; i++) {
     const product = await prisma.products.create({
       data: {
-        name: `Product ${i}`,
-        description: `Description for product ${i}`,
-        price: parseFloat((Math.random() * 100).toFixed(2)),
-        quantity: Math.floor(Math.random() * 100),
-        seller_id: seller.id,
+        name: faker.commerce.productName(),
+        description: faker.commerce.productDescription(),
+        price: parseFloat(faker.commerce.price()),
+        quantity: faker.number.int({ min: 10, max: 100 }),
+        seller_id: sellerUser.id,
+        categories: {
+          create: {
+            category_id: categories[i % categories.length].id,
+          },
+        },
       },
     });
-
-    // Assign 1 to 3 random categories to the product
-    const numCategories = Math.floor(Math.random() * 3) + 1;
-    const selectedCategories = allCategories
-      .sort(() => 0.5 - Math.random())
-      .slice(0, numCategories);
-
-    await prisma.products_category.createMany({
-      data: selectedCategories.map((cat) => ({
-        product_id: product.id,
-        category_id: cat.id,
-      })),
-      skipDuplicates: true,
-    });
-    console.log(`Created product ${i} and assigned categories`);
+    products.push(product);
   }
+  console.log("Created 10 products.");
 
-  console.log("Creating a cart for the client...");
-
-  const allProducts = await prisma.products.findMany();
-  const productsForCart = allProducts.sort(() => 0.5 - Math.random()).slice(0, 3);
-
-  for (const product of productsForCart) {
-    const productItem = await prisma.product_item.create({
-      data: {
-        product_id: product.id,
-        quantity: Math.floor(Math.random() * 5) + 1,
+  // Create a Cart for the client with 3 products
+  await prisma.cart.create({
+    data: {
+      client_id: clientUser.id,
+      items: {
+        create: [
+          { product_id: products[0].id, quantity: 2 },
+          { product_id: products[1].id, quantity: 1 },
+          { product_id: products[2].id, quantity: 5 },
+        ],
       },
-    });
+    },
+  });
+  console.log("Created a cart for the client with 3 items.");
 
-    await prisma.cart.create({
-      data: {
-        client_id: client.id,
-        product_item_id: productItem.id,
+  // Create Purchases
+  // 1. A "COMPLETED" purchase
+  await prisma.purchase.create({
+    data: {
+      client_id: clientUser.id,
+      status: "COMPLETED",
+      total: products[3].price * 1 + products[4].price * 3,
+      items: {
+        create: [
+          {
+            product_id: products[3].id,
+            quantity: 1,
+            price: products[3].price,
+          },
+          {
+            product_id: products[4].id,
+            quantity: 3,
+            price: products[4].price,
+          },
+        ],
       },
-    });
-  }
+    },
+  });
 
-  console.log("Client's cart created with 3 products.");
+  // 2. A "PENDING" purchase
+  await prisma.purchase.create({
+    data: {
+      client_id: clientUser.id,
+      status: "PENDING",
+      total: products[5].price * 2,
+      items: {
+        create: [
+          {
+            product_id: products[5].id,
+            quantity: 2,
+            price: products[5].price,
+          },
+        ],
+      },
+    },
+  });
+  console.log("Created 2 purchases (1 COMPLETED, 1 PENDING).");
 
   console.log("Seeding finished.");
 }

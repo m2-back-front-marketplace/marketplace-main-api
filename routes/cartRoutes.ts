@@ -1,104 +1,117 @@
-import cartController from "../controllers/cartController";
-import authenticate from "../middleware/authMiddleware";
+import { FastifyInstance } from "fastify";
 import { PrismaClient } from "../generated/prisma/client";
-import type { FastifyInstance } from "fastify";
+import cartController from "../controllers/cartController";
 
 const prisma = new PrismaClient();
-const controller = cartController(prisma);
+const cart = cartController(prisma);
 
-const cartRoutes = (fastify: FastifyInstance) => {
-  fastify.get("/:clientId", {
-    schema: {
-      tags: ["Cart"],
-      description: "Get the cart for a client.",
-      params: {
-        type: "object",
-        required: ["clientId"],
-        properties: {
-          clientId: { type: "number" },
+export default async function (fastify: FastifyInstance) {
+  fastify.get(
+    "/",
+    {
+      schema: {
+        summary: "Get the user's cart",
+        tags: ["Cart"],
+        response: {
+          200: { description: "The user's cart" },
+          404: { description: "Cart not found" },
+          500: { description: "Server error" },
         },
       },
     },
-    onRequest: [authenticate],
-    handler: controller.getCartByClientId,
-  });
+    cart.getCart
+  );
 
-  fastify.post("/add", {
-    schema: {
-      tags: ["Cart"],
-      description:
-        "Add a product to the cart. If the product is already in the cart, the quantity will be updated.",
-      body: {
-        type: "object",
-        required: ["clientId", "productId", "quantity"],
-        properties: {
-          clientId: { type: "number" },
-          productId: { type: "number" },
-          quantity: { type: "number" },
+  fastify.post(
+    "/items",
+    {
+      schema: {
+        summary: "Add an item to the cart or update its quantity",
+        tags: ["Cart"],
+        body: {
+          type: "object",
+          required: ["productId", "quantity"],
+          properties: {
+            productId: { type: "integer" },
+            quantity: { type: "integer" },
+          },
+        },
+        response: {
+          200: { description: "Item quantity updated" },
+          201: { description: "Item added to cart" },
+          400: { description: "Invalid request" },
+          500: { description: "Server error" },
         },
       },
     },
-    onRequest: [authenticate],
-    handler: controller.addProductToCart,
-  });
+    cart.addToCart
+  );
 
-  fastify.delete("/:clientId/products/:productId", {
-    schema: {
-      tags: ["Cart"],
-      description: "Remove a product from the cart.",
-      params: {
-        type: "object",
-        required: ["clientId", "productId"],
-        properties: {
-          clientId: { type: "number" },
-          productId: { type: "number" },
+  fastify.put(
+    "/items/:itemId",
+    {
+      schema: {
+        summary: "Update the quantity of a specific item in the cart",
+        tags: ["Cart"],
+        params: {
+          type: "object",
+          properties: {
+            itemId: { type: "integer" },
+          },
+        },
+        body: {
+          type: "object",
+          required: ["quantity"],
+          properties: {
+            quantity: { type: "integer", description: "The new quantity for the item" },
+          },
+        },
+        response: {
+          200: { description: "Item quantity updated successfully" },
+          400: { description: "Invalid request (e.g., non-positive quantity)" },
+          404: { description: "Cart or item not found" },
+          500: { description: "Server error" },
         },
       },
     },
-    onRequest: [authenticate],
-    handler: controller.removeProductFromCart,
-  });
+    cart.updateCartItemQuantity
+  );
 
-  fastify.put("/:clientId/products/:productId", {
-    schema: {
-      tags: ["Cart"],
-      description:
-        "Update the quantity of a product in the cart. If quantity is 0, the product is removed.",
-      params: {
-        type: "object",
-        required: ["clientId", "productId"],
-        properties: {
-          clientId: { type: "number" },
-          productId: { type: "number" },
+  fastify.delete(
+    "/items/:itemId",
+    {
+      schema: {
+        summary: "Remove an item from the cart",
+        tags: ["Cart"],
+        params: {
+          type: "object",
+          properties: {
+            itemId: { type: "integer" },
+          },
         },
-      },
-      body: {
-        type: "object",
-        required: ["quantity"],
-        properties: {
-          quantity: { type: "number" },
+        response: {
+          204: { description: "Item removed successfully" },
+          404: { description: "Cart or item not found" },
+          500: { description: "Server error" },
         },
       },
     },
-    onRequest: [authenticate],
-    handler: controller.updateProductQuantityInCart,
-  });
+    cart.removeFromCart
+  );
 
-  fastify.delete("/:clientId/clear", {
-    schema: {
-      tags: ["Cart"],
-      description: "Clear all items from a client's cart.",
-      params: {
-        type: "object",
-        required: ["clientId"],
-        properties: {
-          clientId: { type: "number" },
+  fastify.delete(
+    "/",
+    {
+      schema: {
+        summary: "Clear all items from the cart",
+        tags: ["Cart"],
+        response: {
+          204: { description: "Cart cleared successfully" },
+          404: { description: "Cart not found" },
+          500: { description: "Server error" },
         },
       },
     },
-    onRequest: [authenticate],
-    handler: controller.clearCart,
-  });
-};
-
-export default cartRoutes;
+    cart.clearCart
+  );
+}

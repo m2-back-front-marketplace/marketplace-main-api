@@ -20,6 +20,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.1.0",
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.1.0",
     "@fastify/jwt": "^10.0.0",
@@ -49,5 +50,8 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "prisma": {
+    "seed": "bun prisma/seed.ts"
   }
 }
