@@ -1,4 +1,4 @@
-import { FastifyInstance } from "fastify";
+import type { FastifyInstance } from "fastify";
 import { PrismaClient } from "../generated/prisma/client";
 import purchaseController from "../controllers/purchaseController";
 
