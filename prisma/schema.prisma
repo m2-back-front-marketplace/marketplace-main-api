@@ -36,11 +36,11 @@ model Clients {
   address_id Int?
 
   // Relations
-  user     Users      @relation(fields: [id], references: [id])
-  address  Address?   @relation(fields: [address_id], references: [id])
-  cart     Cart[]
-  review   Review[]
-  purchase Purchase[]
+  user    Users     @relation(fields: [id], references: [id])
+  address Address?  @relation(fields: [address_id], references: [id])
+  cart    Cart?
+  reviews  Review[]
+  purchases Purchase[]
 }
 
 model Sellers {
@@ -89,11 +89,12 @@ model Products {
   discount_id Int?
 
   // Relations
-  seller       Sellers             @relation(fields: [seller_id], references: [id])
-  discount     Discount?           @relation(fields: [discount_id], references: [id])
-  categories   Products_category[]
-  productItems Product_item[]
-  reviews      Review[]
+  seller     Sellers   @relation(fields: [seller_id], references: [id])
+  discount   Discount? @relation(fields: [discount_id], references: [id])
+  categories Products_category[]
+  reviews    Review[]
+  cartItems  CartItem[]
+  purchaseItems PurchaseItem[]
 }
 
 model Category {
@@ -113,37 +114,53 @@ model Products_category {
   @@id([product_id, category_id])
 }
 
-model Product_item {
-  id         Int @id @default(autoincrement())
+model Cart {
+  id        Int      @id @default(autoincrement())
+  client_id Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client    Clients  @relation(fields: [client_id], references: [id])
+  items     CartItem[]
+}
+
+model CartItem {
+  id         Int      @id @default(autoincrement())
+  cart_id    Int
   product_id Int
   quantity   Int
 
   // Relations
+  cart    Cart     @relation(fields: [cart_id], references: [id])
   product Products @relation(fields: [product_id], references: [id])
-  carts   Cart[]
-}
 
-model Cart {
-  id              Int      @id @default(autoincrement())
-  product_item_id Int
-  client_id       Int
-  added_at        DateTime @default(now())
-
-  // Relations
-  product_item Product_item @relation(fields: [product_item_id], references: [id])
-  client       Clients      @relation(fields: [client_id], references: [id])
-  purchase     Purchase[]
+  @@unique([cart_id, product_id])
 }
 
 model Purchase {
-  id        Int    @id @default(autoincrement())
-  status    String
-  cart_id   Int
+  id        Int      @id @default(autoincrement())
   client_id Int
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  total     Float
 
   // Relations
-  cart   Cart    @relation(fields: [cart_id], references: [id])
-  client Clients @relation(fields: [client_id], references: [id])
+  client    Clients  @relation(fields: [client_id], references: [id])
+  items     PurchaseItem[]
+}
+
+model PurchaseItem {
+  id          Int      @id @default(autoincrement())
+  purchase_id Int
+  product_id  Int
+  quantity    Int
+  price       Float
+
+  // Relations
+  purchase Purchase @relation(fields: [purchase_id], references: [id])
+  product  Products @relation(fields: [product_id], references: [id])
 }
 
 model Review {

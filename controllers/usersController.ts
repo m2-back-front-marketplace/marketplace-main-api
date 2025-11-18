@@ -1,4 +1,5 @@
 import { PrismaClient } from "../generated/prisma/client";
+import type { FastifyRequest, FastifyReply } from "fastify";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -52,7 +53,7 @@ const usersController = (prisma: PrismaClient) => ({
         username: string;
         email: string;
         password: string;
-        phone?: number;
+        phone?: string;
         address_id?: number;
       };
     }>,
@@ -84,7 +85,7 @@ const usersController = (prisma: PrismaClient) => ({
           role: "client",
           client: {
             create: {
-              phone: phone ?? null,
+              phone: phone,
               address_id: address_id ?? null,
             },
           },
