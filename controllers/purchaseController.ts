@@ -104,7 +104,7 @@ const purchaseController = (prisma: PrismaClient) => ({
     if (upperCaseStatus !== "PENDING" && upperCaseStatus !== "COMPLETED") {
       return reply
         .status(400)
-        .send({ message: 'Invalid status. Must be "pending" or "completed".' });
+        .send({ message: "Invalid status. Must be \"pending\" or \"completed\"." });
     }
 
     try {
