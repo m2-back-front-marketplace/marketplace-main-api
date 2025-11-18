@@ -5,8 +5,9 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../generated/prisma/client"
+  provider      = "prisma-client-js"
+  output        = "../generated/prisma/client"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
 }
 
 datasource db {
@@ -15,9 +16,9 @@ datasource db {
 }
 
 model Users {
-  id       Int      @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   username String
-  email    String   @unique
+  email    String @unique
   password String
   role     String
 
@@ -55,8 +56,8 @@ model Sellers {
   image            String?
 
   // Relations
-  user    Users    @relation(fields: [id], references: [id])
-  address Address? @relation(fields: [address_id], references: [id])
+  user     Users      @relation(fields: [id], references: [id])
+  address  Address?   @relation(fields: [address_id], references: [id])
   products Products[]
 }
 
@@ -66,7 +67,7 @@ model Admin {
 }
 
 model Address {
-  id          Int        @id @default(autoincrement())
+  id          Int    @id @default(autoincrement())
   country     String
   city        String
   street      String
@@ -77,7 +78,7 @@ model Address {
 }
 
 model Products {
-  id          Int         @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   name        String
   description String?
   price       Float
@@ -108,7 +109,7 @@ model ProductImage {
 }
 
 model Category {
-  id       Int                @id @default(autoincrement())
+  id       Int                 @id @default(autoincrement())
   name     String
   products Products_category[]
 }
