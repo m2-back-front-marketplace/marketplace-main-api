@@ -29,11 +29,13 @@ services:
       JWT_SECRET: "${JWT_SECRET}"
       COOKIE_SECRET: "${COOKIE_SECRET}"
       PRISMA_SCHEMA_PATH: "./prisma/schema.prisma"
+      API_PORT: "8000"
+      API_URL: "0.0.0.0"
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "8000:8000"
     networks:
       - postgres
 
