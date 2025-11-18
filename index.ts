@@ -5,12 +5,29 @@ import routes from "./routes/route.ts";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import dotenv from "dotenv";
+import multipart from "@fastify/multipart";
+import { v2 as cloudinary } from "cloudinary";
 
 dotenv.config();
+
+console.log("--- DÉBOGAGE DES VARIABLES CLOUDINARY ---");
+console.log("Cloud Name chargé :", process.env.CLOUDINARY_CLOUD_NAME ? "Oui" : "NON");
+console.log("API Key chargée :", process.env.CLOUDINARY_API_KEY ? "Oui" : "NON");
+console.log("API Secret chargé :", process.env.CLOUDINARY_API_SECRET ? "Oui" : "NON");
+console.log("------------------------------------");
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
 
 const fastify = Fastify({
   logger: true,
 });
+
+fastify.register(multipart);
 
 fastify.register(swagger, {
   swagger: {
