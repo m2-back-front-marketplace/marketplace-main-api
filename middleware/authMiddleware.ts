@@ -25,15 +25,25 @@ const authenticate = async (request: FastifyRequest, reply: FastifyReply) => {
 
     const user = await prisma.users.findUnique({
       where: { id: decoded.id },
-      select: { id: true },
+      select: {
+        id: true,
+        role: true,
+        email: true,
+        username: true,
+      },
     });
 
     if (!user) {
       return reply.code(401).send({ error: "Invalid token: User not found." });
     }
 
-    // Attach user to the request object instead of overwriting the body
-    request.user = { id: user.id };
+    // Attach user to the request object with all necessary info
+    request.user = {
+      id: user.id,
+      role: user.role,
+      email: user.email,
+      username: user.username,
+    };
   } catch (err) {
     // Catch JWT errors like 'TokenExpiredError' or 'JsonWebTokenError'
     return reply.code(401).send({ error: "Invalid or expired token.", err });
