@@ -1,6 +1,7 @@
 import { PrismaClient } from "../generated/prisma/client";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { uploadStream } from "../services/cloudinaryService";
+import { get } from "node:http";
 
 const productsController = (prisma: PrismaClient) => ({
   createProduct: async (
@@ -216,6 +217,44 @@ const productsController = (prisma: PrismaClient) => ({
     } catch (error) {
       console.error("Error while getting product:", error);
       return reply.status(500).send({ message: "Internal server error" });
+    }
+  },
+  getProductById: async (
+    request: FastifyRequest<{ Params: { id: number } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const productId = request.params.id;
+      const product = await prisma.products.findUnique({
+        where: { id: productId },
+        include: {
+          seller: {
+            select: {
+              user: {
+                select: {
+                  username: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          images: {
+            select: {
+              id: true,
+              url: true,
+            },
+          },
+        },
+      });
+      if (!product) {
+        return reply.status(404).send({ message: "Product not found" });
+      }
+      return reply
+        .status(200)
+        .send({ data: product, message: "Product fetched by ID successfully" });
+    } catch (error) {
+      console.error("Error while getting product by ID:", error);
+      return reply.status (500).send({ message: "Internal server error" });
     }
   },
 });
