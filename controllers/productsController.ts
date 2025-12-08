@@ -108,8 +108,8 @@ const productsController = (prisma: PrismaClient) => ({
           approuved,
           discount: discount_id
             ? {
-                connect: { id: discount_id },
-              }
+              connect: { id: discount_id },
+            }
             : { disconnect: true },
         },
       });
