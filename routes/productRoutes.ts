@@ -80,7 +80,6 @@ const productRoutes = (fastify: FastifyInstance) => {
       tags: ["Product"],
       description: "Get all products",
     },
-    onRequest: [authenticate],
     handler: controller.getProduct,
   });
 
