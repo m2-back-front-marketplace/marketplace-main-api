@@ -136,7 +136,6 @@ const productRoutes = (fastify: FastifyInstance) => {
         required: ["id"],
       },
     },
-    onRequest: [authenticate],
     handler: controller.getProductById,
   });
 

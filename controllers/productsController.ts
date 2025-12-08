@@ -1,7 +1,6 @@
 import { PrismaClient } from "../generated/prisma/client";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { uploadStream } from "../services/cloudinaryService";
-import { get } from "node:http";
 
 const productsController = (prisma: PrismaClient) => ({
   createProduct: async (
@@ -109,8 +108,8 @@ const productsController = (prisma: PrismaClient) => ({
           approuved,
           discount: discount_id
             ? {
-                connect: { id: discount_id },
-              }
+              connect: { id: discount_id },
+            }
             : { disconnect: true },
         },
       });
@@ -254,7 +253,7 @@ const productsController = (prisma: PrismaClient) => ({
         .send({ data: product, message: "Product fetched by ID successfully" });
     } catch (error) {
       console.error("Error while getting product by ID:", error);
-      return reply.status (500).send({ message: "Internal server error" });
+      return reply.status(500).send({ message: "Internal server error" });
     }
   },
 });
