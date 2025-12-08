@@ -124,7 +124,7 @@ const productsController = (prisma: PrismaClient) => ({
           })),
         });
       }
-      return reply.status(201).send({ message: "Product succefully updated", updateProduct });
+      return reply.status(201).send({ message: "Product succefully updated", data: updateProduct });
     } catch (error) {
       console.error("Error while updating the product", error);
       return reply.status(500).send({ message: "Internal server error" });
@@ -183,8 +183,7 @@ const productsController = (prisma: PrismaClient) => ({
           id: productId,
         },
       });
-      // The `onDelete: Cascade` in the schema will handle deleting related ProductImage entries
-      return reply.status(204).send();
+      return reply.status(200).send({ message: "Product succefully deleted" });
     } catch (error) {
       console.error("eroor while deleting product", error);
       return reply.status(500).send({ message: "Internal server errro" });
