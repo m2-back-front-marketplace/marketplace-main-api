@@ -15,7 +15,7 @@ export const uploadStream = (buffer: Buffer): Promise<any> => {
           return reject(error);
         }
         resolve(result);
-      },
+      }
     );
 
     // On transforme le buffer en un stream lisible que Cloudinary peut consommer
