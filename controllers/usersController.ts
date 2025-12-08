@@ -18,7 +18,11 @@ const usersController = (prisma: PrismaClient) => ({
         return reply.status(400).send({ message: "All fields are required" });
       }
 
-      const user = await prisma.users.findFirst({ where: { email } });
+      const user = await prisma.users.findFirst({
+        where: { email },
+        select: { id: true, email: true, username: true, role: true, password: true },
+      });
+
       if (!user) {
         return reply.status(401).send({ message: "Email not registered" });
       }
@@ -40,7 +44,7 @@ const usersController = (prisma: PrismaClient) => ({
         path: "/",
       });
 
-      return reply.status(200).send({ user });
+      return reply.status(200).send({ data: user, message: `Welcome ${user.username}` });
     } catch (error) {
       console.error("error login controller", error);
       return reply.status(500).send({ message: "Internal server error" });
@@ -99,7 +103,7 @@ const usersController = (prisma: PrismaClient) => ({
 
       reply.setCookie("token", token, { httpOnly: true, sameSite: "strict" });
 
-      return reply.status(201).send({ message: "Client created", user });
+      return reply.status(201).send({ message: "Client created", data: user });
     } catch (error) {
       console.error("error registerClient", error);
       return reply.status(500).send({ message: "Internal server error" });
@@ -179,7 +183,7 @@ const usersController = (prisma: PrismaClient) => ({
 
       reply.setCookie("token", token, { httpOnly: true, sameSite: "strict" });
 
-      return reply.status(201).send({ message: "Seller created", user });
+      return reply.status(201).send({ message: "Seller created", data: user });
     } catch (error) {
       console.error("error registerSeller", error);
       return reply.status(500).send({ message: "Internal server error" });

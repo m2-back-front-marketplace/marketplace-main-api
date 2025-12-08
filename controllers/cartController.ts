@@ -28,10 +28,12 @@ const cartController = (prisma: PrismaClient) => ({
 
       if (!cart) {
         // Return an empty cart structure if none exists, which is a valid state
-        return reply.status(200).send({ client_id: userId, items: [] });
+        return reply
+          .status(200)
+          .send({ client_id: userId, items: [], message: "Cart retrieved successfully" });
       }
 
-      return reply.status(200).send(cart);
+      return reply.status(200).send({ data: cart, message: "Cart retrieved successfully" });
     } catch (error) {
       console.error("error getCart controller", error);
       return reply.status(500).send({ message: "Failed to get cart", error });
@@ -86,7 +88,9 @@ const cartController = (prisma: PrismaClient) => ({
             quantity: quantity,
           },
         });
-        return reply.status(201).send(newItem);
+        return reply
+          .status(201)
+          .send({ data: newItem, message: "Item added to cart successfully" });
       }
     } catch (error) {
       console.error("error addToCart controller", error);
@@ -129,7 +133,9 @@ const cartController = (prisma: PrismaClient) => ({
         data: { quantity },
       });
 
-      return reply.status(200).send(updatedItem);
+      return reply
+        .status(200)
+        .send({ data: updatedItem, message: "Cart item quantity updated successfully" });
     } catch (error) {
       console.error("error updateCartItemQuantity controller", error);
       return reply.status(500).send({ message: "Failed to update cart item quantity", error });
@@ -165,7 +171,7 @@ const cartController = (prisma: PrismaClient) => ({
         where: { id: parseInt(itemId) },
       });
 
-      return reply.status(204).send();
+      return reply.status(204).send({ data: {}, message: "Item removed from cart successfully" });
     } catch (error) {
       console.error("error removeFromCart controller", error);
       return reply.status(500).send({ message: "Failed to remove item from cart", error });
@@ -191,7 +197,7 @@ const cartController = (prisma: PrismaClient) => ({
         where: { cart_id: cart.id },
       });
 
-      return reply.status(204).send();
+      return reply.status(204).send({ data: {}, message: "Cart cleared successfully" });
     } catch (error) {
       console.error("error clearCart controller", error);
       return reply.status(500).send({ message: "Failed to clear cart", error });

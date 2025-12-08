@@ -58,7 +58,7 @@ const purchaseController = (prisma: PrismaClient) => ({
         return newPurchase;
       });
 
-      return reply.status(201).send(purchase);
+      return reply.status(201).send({ data: purchase, message: "Purchase created successfully" });
     } catch (error) {
       console.error("error createPurchase controller", error);
       return reply.status(500).send({ message: "Failed to create purchase", error });
@@ -87,7 +87,9 @@ const purchaseController = (prisma: PrismaClient) => ({
         },
       });
 
-      return reply.status(200).send(purchases);
+      return reply
+        .status(200)
+        .send({ data: purchases, message: "Purchase history retrieved successfully" });
     } catch (error) {
       console.error("error getPurchaseHistory controller", error);
       return reply.status(500).send({ message: "Failed to get purchase history", error });
@@ -131,7 +133,9 @@ const purchaseController = (prisma: PrismaClient) => ({
         },
       });
 
-      return reply.status(200).send(purchases);
+      return reply
+        .status(200)
+        .send({ data: purchases, message: "Purchase history retrieved successfully" });
     } catch (error) {
       console.error("error getPurchaseHistoryByStatus controller", error);
       return reply.status(500).send({ message: "Failed to get purchase history by status", error });
@@ -168,7 +172,9 @@ const purchaseController = (prisma: PrismaClient) => ({
         return reply.status(404).send({ message: "Purchase not found." });
       }
 
-      return reply.status(200).send(purchase);
+      return reply
+        .status(200)
+        .send({ data: purchase, message: "Purchase details retrieved successfully" });
     } catch (error) {
       console.error("error getPurchaseById controller", error);
       return reply.status(500).send({ message: "Failed to get purchase details", error });

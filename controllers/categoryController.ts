@@ -7,7 +7,7 @@ dotenv.config();
 const categoryController = (prisma: PrismaClient) => ({
   getCategories: async (request: FastifyRequest, reply: FastifyReply) => {
     const categories = await prisma.category.findMany();
-    reply.send(categories);
+    reply.send({ data: categories });
   },
 });
 
