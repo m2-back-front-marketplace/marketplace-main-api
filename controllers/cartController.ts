@@ -1,5 +1,6 @@
 import { PrismaClient } from "../generated/prisma/client";
 import type { FastifyRequest, FastifyReply } from "fastify";
+import { AuthenticatedRequest } from "../middleware/roleMiddleware";
 
 // Define types for request parts
 type CartItemParams = { itemId: string };
@@ -8,10 +9,7 @@ type UpdateCartItemBody = { quantity: number };
 
 const cartController = (prisma: PrismaClient) => ({
   // Get user's cart
-  getCart: async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!request.user) {
-      return reply.status(401).send({ message: "Authentication required." });
-    }
+  getCart: async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const userId = request.user.id;
 
     try {
@@ -39,10 +37,10 @@ const cartController = (prisma: PrismaClient) => ({
   },
 
   // Add item to cart or update quantity
-  addToCart: async (request: FastifyRequest<{ Body: AddToCartBody }>, reply: FastifyReply) => {
-    if (!request.user) {
-      return reply.status(401).send({ message: "Authentication required." });
-    }
+  addToCart: async (
+    request: AuthenticatedRequest & FastifyRequest<{ Body: AddToCartBody }>,
+    reply: FastifyReply
+  ) => {
     const userId = request.user.id;
     const { productId, quantity } = request.body;
 
@@ -96,12 +94,10 @@ const cartController = (prisma: PrismaClient) => ({
 
   // Update item quantity in cart
   updateCartItemQuantity: async (
-    request: FastifyRequest<{ Params: CartItemParams; Body: UpdateCartItemBody }>,
+    request: AuthenticatedRequest &
+      FastifyRequest<{ Params: CartItemParams; Body: UpdateCartItemBody }>,
     reply: FastifyReply
   ) => {
-    if (!request.user) {
-      return reply.status(401).send({ message: "Authentication required." });
-    }
     const userId = request.user.id;
     const { itemId } = request.params;
     const { quantity } = request.body;
@@ -138,12 +134,9 @@ const cartController = (prisma: PrismaClient) => ({
 
   // Remove item from cart
   removeFromCart: async (
-    request: FastifyRequest<{ Params: CartItemParams }>,
+    request: AuthenticatedRequest & FastifyRequest<{ Params: CartItemParams }>,
     reply: FastifyReply
   ) => {
-    if (!request.user) {
-      return reply.status(401).send({ message: "Authentication required." });
-    }
     const userId = request.user.id;
     const { itemId } = request.params;
 
@@ -173,10 +166,7 @@ const cartController = (prisma: PrismaClient) => ({
   },
 
   // Clear the entire cart
-  clearCart: async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!request.user) {
-      return reply.status(401).send({ message: "Authentication required." });
-    }
+  clearCart: async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const userId = request.user.id;
     try {
       const cart = await prisma.cart.findFirst({

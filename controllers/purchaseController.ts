@@ -1,15 +1,13 @@
 import { PrismaClient } from "../generated/prisma/client";
 import type { FastifyRequest, FastifyReply } from "fastify";
+import { AuthenticatedRequest } from "../middleware/roleMiddleware";
 
 // Define types for request parts
 type PurchaseParams = { purchaseId: string };
 
 const purchaseController = (prisma: PrismaClient) => ({
   // Create a new purchase from the cart
-  createPurchase: async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!request.user) {
-      return reply.status(401).send({ message: "Authentication required." });
-    }
+  createPurchase: async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const userId = request.user.id;
 
     try {
@@ -66,10 +64,7 @@ const purchaseController = (prisma: PrismaClient) => ({
   },
 
   // Get user's purchase history
-  getPurchaseHistory: async (request: FastifyRequest, reply: FastifyReply) => {
-    if (!request.user) {
-      return reply.status(401).send({ message: "Authentication required." });
-    }
+  getPurchaseHistory: async (request: AuthenticatedRequest, reply: FastifyReply) => {
     const userId = request.user.id;
 
     try {
@@ -96,12 +91,9 @@ const purchaseController = (prisma: PrismaClient) => ({
 
   // Get user's purchase history by status
   getPurchaseHistoryByStatus: async (
-    request: FastifyRequest<{ Params: { status: string } }>,
+    request: AuthenticatedRequest & FastifyRequest<{ Params: { status: string } }>,
     reply: FastifyReply
   ) => {
-    if (!request.user) {
-      return reply.status(401).send({ message: "Authentication required." });
-    }
     const userId = request.user.id;
     const { status } = request.params;
 
@@ -140,12 +132,9 @@ const purchaseController = (prisma: PrismaClient) => ({
 
   // Get a specific purchase by ID
   getPurchaseById: async (
-    request: FastifyRequest<{ Params: PurchaseParams }>,
+    request: AuthenticatedRequest & FastifyRequest<{ Params: PurchaseParams }>,
     reply: FastifyReply
   ) => {
-    if (!request.user) {
-      return reply.status(401).send({ message: "Authentication required." });
-    }
     const userId = request.user.id;
     const { purchaseId } = request.params;
 

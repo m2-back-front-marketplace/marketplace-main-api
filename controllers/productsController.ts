@@ -1,40 +1,33 @@
 import { PrismaClient } from "../generated/prisma/client";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { uploadStream } from "../services/cloudinaryService";
+import type { AuthenticatedRequest } from "../middleware/roleMiddleware";
 
 const productsController = (prisma: PrismaClient) => ({
   createProduct: async (
-    request: FastifyRequest<{
-      Body: {
-        name: string;
-        description: string;
-        price: number;
-        quantity: number;
-        approuved: string;
-        seller_id: number;
-        discount_id: number;
-        categories_id: number[];
-      };
-    }>,
+    request: AuthenticatedRequest &
+      FastifyRequest<{
+        Body: {
+          name: string;
+          description: string;
+          price: number;
+          quantity: number;
+          approuved: string;
+          discount_id: number;
+          categories_id: number[];
+        };
+      }>,
     reply: FastifyReply
   ) => {
     try {
-      const {
-        name,
-        description,
-        price,
-        quantity,
-        approuved,
-        seller_id,
-        discount_id,
-        categories_id,
-      } = request.body;
+      const { name, description, price, quantity, approuved, discount_id, categories_id } =
+        request.body;
+      const seller_id = request.user.id; // Use the authenticated user's ID as the seller_id
+
       if (!name || !price || !quantity) {
         return reply.status(400).send({ message: "all field required" });
       }
-      if (!seller_id) {
-        return reply.status(403).send({ message: "Forbidden, must be connected" });
-      }
+
       const product = await prisma.products.create({
         data: {
           name,
@@ -69,31 +62,36 @@ const productsController = (prisma: PrismaClient) => ({
   },
 
   updateProduct: async (
-    request: FastifyRequest<{
-      Params: { id: number };
-      Body: {
-        name: string;
-        description: string;
-        price: number;
-        quantity: number;
-        approuved: string;
-        discount_id: number;
-        categories_id: number[];
-      };
-    }>,
+    request: AuthenticatedRequest &
+      FastifyRequest<{
+        Params: { id: number };
+        Body: {
+          name: string;
+          description: string;
+          price: number;
+          quantity: number;
+          approuved: string;
+          discount_id: number;
+          categories_id: number[];
+        };
+      }>,
     reply: FastifyReply
   ) => {
     try {
       const productId = request.params.id;
       const { name, description, price, quantity, approuved, discount_id, categories_id } =
         request.body;
-      const existingProduct = await prisma.products.findUnique({
+
+      // Optional: Add a check to ensure the authenticated user is the owner of the product
+      const existingProduct = await prisma.products.findFirst({
         where: {
           id: productId,
+          seller_id: request.user.id, // Ensure ownership
         },
       });
+
       if (!existingProduct) {
-        return reply.status(404).send({ message: "Product not found" });
+        return reply.status(404).send({ message: "Product not found or you are not the owner" });
       }
 
       const updateProduct = await prisma.products.update({
@@ -132,7 +130,7 @@ const productsController = (prisma: PrismaClient) => ({
   },
 
   uploadProductImage: async (
-    request: FastifyRequest<{ Params: { id: string } }>,
+    request: AuthenticatedRequest & FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
   ) => {
     try {
@@ -143,10 +141,12 @@ const productsController = (prisma: PrismaClient) => ({
         return reply.status(400).send({ message: "No file uploaded." });
       }
 
-      // Check if product exists
-      const product = await prisma.products.findUnique({ where: { id: productId } });
+      // Check if product exists and belongs to the seller
+      const product = await prisma.products.findFirst({
+        where: { id: productId, seller_id: request.user.id },
+      });
       if (!product) {
-        return reply.status(404).send({ message: "Product not found." });
+        return reply.status(404).send({ message: "Product not found or you are not the owner." });
       }
 
       const buffer = await data.toBuffer();
@@ -167,15 +167,22 @@ const productsController = (prisma: PrismaClient) => ({
   },
 
   deleteProduct: async (
-    request: FastifyRequest<{ Params: { id: number } }>,
+    request: AuthenticatedRequest & FastifyRequest<{ Params: { id: number } }>,
     reply: FastifyReply
   ) => {
     try {
       const productId = request.params.id;
 
-      const existingProduct = await prisma.products.findUnique({ where: { id: productId } });
+      const existingProduct = await prisma.products.findFirst({
+        where: {
+          id: productId,
+          // For admin role, this check might need to be different
+          // For now, we assume only the seller can delete
+          seller_id: request.user.id,
+        },
+      });
       if (!existingProduct) {
-        return reply.status(404).send({ message: "product not found or doesnt existe" });
+        return reply.status(404).send({ message: "Product not found or you are not the owner" });
       }
 
       await prisma.products.delete({

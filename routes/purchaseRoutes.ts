@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { PrismaClient } from "../generated/prisma/client";
 import purchaseController from "../controllers/purchaseController";
+import authenticate from "../middleware/authMiddleware";
+import { requireClient } from "../middleware/roleMiddleware";
 
 const prisma = new PrismaClient();
 const purchase = purchaseController(prisma);
@@ -9,6 +11,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.post(
     "/",
     {
+      preHandler: [authenticate, requireClient],
       schema: {
         summary: "Create a new purchase from the user's cart",
         tags: ["Purchase"],
@@ -25,6 +28,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.get(
     "/",
     {
+      preHandler: [authenticate, requireClient],
       schema: {
         summary: "Get the purchase history for the current user",
         tags: ["Purchase"],
@@ -54,6 +58,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.get(
     "/status/:status",
     {
+      preHandler: [authenticate, requireClient],
       schema: {
         summary: "Get purchase history for the current user by status",
         tags: ["Purchase"],
@@ -94,6 +99,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.get(
     "/:purchaseId",
     {
+      preHandler: [authenticate, requireClient],
       schema: {
         summary: "Get details of a specific purchase",
         tags: ["Purchase"],

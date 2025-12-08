@@ -1,6 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { PrismaClient } from "../generated/prisma/client";
 import cartController from "../controllers/cartController";
+import authenticate from "../middleware/authMiddleware";
+import { requireClient } from "../middleware/roleMiddleware";
 
 const prisma = new PrismaClient();
 const cart = cartController(prisma);
@@ -9,6 +11,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.get(
     "/",
     {
+      preHandler: [authenticate, requireClient],
       schema: {
         summary: "Get the user's cart",
         tags: ["Cart"],
@@ -25,6 +28,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.post(
     "/items",
     {
+      preHandler: [authenticate, requireClient],
       schema: {
         summary: "Add an item to the cart or update its quantity",
         tags: ["Cart"],
@@ -50,6 +54,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.put(
     "/items/:itemId",
     {
+      preHandler: [authenticate, requireClient],
       schema: {
         summary: "Update the quantity of a specific item in the cart",
         tags: ["Cart"],
@@ -80,6 +85,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.delete(
     "/items/:itemId",
     {
+      preHandler: [authenticate, requireClient],
       schema: {
         summary: "Remove an item from the cart",
         tags: ["Cart"],
@@ -102,6 +108,7 @@ export default async function (fastify: FastifyInstance) {
   fastify.delete(
     "/",
     {
+      preHandler: [authenticate, requireClient],
       schema: {
         summary: "Clear all items from the cart",
         tags: ["Cart"],
