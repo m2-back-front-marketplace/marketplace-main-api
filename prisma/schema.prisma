@@ -83,18 +83,29 @@ model Products {
   description String?
   price       Float
   quantity    Int
-  image       String?
   approuved   String?
   seller_id   Int
   discount_id Int?
 
   // Relations
-  seller     Sellers   @relation(fields: [seller_id], references: [id])
-  discount   Discount? @relation(fields: [discount_id], references: [id])
-  categories Products_category[]
-  reviews    Review[]
-  cartItems  CartItem[]
+  seller        Sellers             @relation(fields: [seller_id], references: [id])
+  discount      Discount?           @relation(fields: [discount_id], references: [id])
+  categories    Products_category[]
+  reviews       Review[]
+  cartItems     CartItem[]
   purchaseItems PurchaseItem[]
+  images        ProductImage[]
+}
+
+model ProductImage {
+  id         Int      @id @default(autoincrement())
+  url        String
+  product_id Int
+  created_at DateTime @default(now())
+
+  product Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@index([product_id])
 }
 
 model Category {
@@ -108,8 +119,8 @@ model Products_category {
   category_id Int
 
   // Relations
-  product  Products @relation(fields: [product_id], references: [id])
-  category Category @relation(fields: [category_id], references: [id])
+  product  Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [category_id], references: [id], onDelete: Cascade)
 
   @@id([product_id, category_id])
 }
@@ -121,19 +132,19 @@ model Cart {
   updatedAt DateTime @updatedAt
 
   // Relations
-  client    Clients  @relation(fields: [client_id], references: [id])
-  items     CartItem[]
+  client Clients    @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  items  CartItem[]
 }
 
 model CartItem {
-  id         Int      @id @default(autoincrement())
+  id         Int @id @default(autoincrement())
   cart_id    Int
   product_id Int
   quantity   Int
 
   // Relations
-  cart    Cart     @relation(fields: [cart_id], references: [id])
-  product Products @relation(fields: [product_id], references: [id])
+  cart    Cart     @relation(fields: [cart_id], references: [id], onDelete: Cascade)
+  product Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
   @@unique([cart_id, product_id])
 }
@@ -147,20 +158,20 @@ model Purchase {
   total     Float
 
   // Relations
-  client    Clients  @relation(fields: [client_id], references: [id])
-  items     PurchaseItem[]
+  client Clients        @relation(fields: [client_id], references: [id])
+  items  PurchaseItem[]
 }
 
 model PurchaseItem {
-  id          Int      @id @default(autoincrement())
+  id          Int @id @default(autoincrement())
   purchase_id Int
   product_id  Int
   quantity    Int
   price       Float
 
   // Relations
-  purchase Purchase @relation(fields: [purchase_id], references: [id])
-  product  Products @relation(fields: [product_id], references: [id])
+  purchase Purchase @relation(fields: [purchase_id], references: [id], onDelete: Cascade)
+  product  Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
 }
 
 model Review {
@@ -171,12 +182,12 @@ model Review {
   note       Float?
 
   // Relations
-  client  Clients  @relation(fields: [client_id], references: [id])
-  product Products @relation(fields: [product_id], references: [id])
+  client  Clients  @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  product Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
 }
 
 model Discount {
-  id         Int        @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   name       String
   amount     Float
   start_date DateTime
