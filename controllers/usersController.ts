@@ -38,13 +38,15 @@ const usersController = (prisma: PrismaClient) => ({
 
       const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
-      reply.setCookie("token", token, {
-        httpOnly: true,
-        sameSite: "strict",
+      reply.setCookie("auth_token", token, {
         path: "/",
+        httpOnly: false,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 7
       });
 
-      return reply.status(200).send({ data: user, message: `Welcome ${user.username}` });
+      return reply.status(200).send({ data: user, message: `Welcome ${user.username}`, token });
     } catch (error) {
       console.error("error login controller", error);
       return reply.status(500).send({ message: "Internal server error" });
@@ -96,12 +98,6 @@ const usersController = (prisma: PrismaClient) => ({
         },
         include: { client: true },
       });
-
-      const token = jwt.sign({ id: user.id, role: "client" }, process.env.JWT_SECRET, {
-        expiresIn: "1d",
-      });
-
-      reply.setCookie("token", token, { httpOnly: true, sameSite: "strict" });
 
       return reply.status(201).send({ message: "Client created", data: user });
     } catch (error) {
@@ -176,12 +172,6 @@ const usersController = (prisma: PrismaClient) => ({
         },
         include: { seller: true },
       });
-
-      const token = jwt.sign({ id: user.id, role: "seller" }, process.env.JWT_SECRET, {
-        expiresIn: "1d",
-      });
-
-      reply.setCookie("token", token, { httpOnly: true, sameSite: "strict" });
 
       return reply.status(201).send({ message: "Seller created", data: user });
     } catch (error) {
