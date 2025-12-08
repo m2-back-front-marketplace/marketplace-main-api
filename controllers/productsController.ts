@@ -189,6 +189,35 @@ const productsController = (prisma: PrismaClient) => ({
       return reply.status(500).send({ message: "Internal server errro" });
     }
   },
+
+  getProduct: async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const product = await prisma.products.findMany({
+        include: {
+          seller: {
+            select: {
+              user: {
+                select: {
+                  username: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          images: {
+            select: {
+              id: true,
+              url: true,
+            },
+          },
+        },
+      });
+      return reply.status(200).send({ data: product, message: "Product fetched successfully" });
+    } catch (error) {
+      console.error("Error while getting product:", error);
+      return reply.status(500).send({ message: "Internal server error" });
+    }
+  },
 });
 
 export default productsController;
