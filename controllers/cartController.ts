@@ -79,12 +79,10 @@ const cartController = (prisma: PrismaClient) => {
 
         // If no cart found (should not happen since we create one), return empty structure
         if (!fullCart) {
-          return reply
-            .status(200)
-            .send({
-              data: { id: cart.id, client_id: cart.client_id, items: [] },
-              message: "Cart retrieved successfully",
-            });
+          return reply.status(200).send({
+            data: { id: cart.id, client_id: cart.client_id, items: [] },
+            message: "Cart retrieved successfully",
+          });
         }
 
         return reply.status(200).send({ data: fullCart, message: "Cart retrieved successfully" });

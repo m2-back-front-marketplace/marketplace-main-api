@@ -43,7 +43,7 @@ const usersController = (prisma: PrismaClient) => ({
         httpOnly: false,
         secure: false,
         sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7
+        maxAge: 60 * 60 * 24 * 7,
       });
 
       return reply.status(200).send({ data: user, message: `Welcome ${user.username}`, token });

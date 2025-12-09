@@ -6,8 +6,5 @@ const prisma = new PrismaClient();
 const category = categoryController(prisma);
 
 export default async function categoryRoutes(fastify: FastifyInstance) {
-  fastify.get(
-    "/",
-    category.getCategories
-  );
+  fastify.get("/", category.getCategories);
 }
