@@ -21,6 +21,7 @@ RUN bun install --frozen-lockfile --ignore-scripts
 
 # Generate Prisma Client with correct binary targets
 RUN bunx prisma generate
+RUN bun seed
 
 # Copy source code
 COPY --chown=appuser:appuser . .
