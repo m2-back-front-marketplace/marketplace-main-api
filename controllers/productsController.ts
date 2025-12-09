@@ -11,7 +11,6 @@ const productsController = (prisma: PrismaClient) => ({
         price: number;
         quantity: number;
         approuved: string;
-        seller_id: number;
         discount_id: number;
         categories_id: number[];
       };
@@ -19,22 +18,17 @@ const productsController = (prisma: PrismaClient) => ({
     reply: FastifyReply
   ) => {
     try {
-      const {
-        name,
-        description,
-        price,
-        quantity,
-        approuved,
-        seller_id,
-        discount_id,
-        categories_id,
-      } = request.body;
+      const { name, description, price, quantity, approuved, discount_id, categories_id } =
+        request.body;
+
       if (!name || !price || !quantity) {
         return reply.status(400).send({ message: "all field required" });
       }
-      if (!seller_id) {
+      if (!request.user) {
         return reply.status(403).send({ message: "Forbidden, must be connected" });
       }
+      const seller_id = request.user.id;
+      console.log(seller_id);
       const product = await prisma.products.create({
         data: {
           name,
@@ -212,6 +206,7 @@ const productsController = (prisma: PrismaClient) => ({
           },
         },
       });
+      console.log("product", product);
       return reply.status(200).send({ data: product, message: "Product fetched successfully" });
     } catch (error) {
       console.error("Error while getting product:", error);

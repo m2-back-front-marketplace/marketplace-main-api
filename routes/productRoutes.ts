@@ -15,13 +15,12 @@ const productRoutes = (fastify: FastifyInstance) => {
       description: "Create new product",
       body: {
         type: "object",
-        required: ["name", "price", "quantity", "seller_id"],
+        required: ["name", "price", "quantity"],
         properties: {
           name: { type: "string" },
           description: { type: "string" },
           price: { type: "number" },
           quantity: { type: "number" },
-          seller_id: { type: "number" },
           discount_id: { type: "number" },
           category_id: { type: "number" },
         },
@@ -79,48 +78,7 @@ const productRoutes = (fastify: FastifyInstance) => {
     schema: {
       tags: ["Product"],
       description: "Get all products",
-      response: {
-        200: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              id: { type: "number" },
-              name: { type: "string" },
-              description: { type: "string" },
-              price: { type: "number" },
-              quantity: { type: "number" },
-              discount_id: { type: "number" },
-              categories_id: { type: "array", items: { type: "number" } },
-              images: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    id: { type: "number" },
-                    url: { type: "string" },
-                  },
-                },
-              },
-              seller: {
-                type: "object",
-                properties: {
-                  id: { type: "number" },
-                  user: {
-                    type: "object",
-                    properties: {
-                      username: { type: "string" },
-                      email: { type: "string" },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     },
-    onRequest: [authenticate],
     handler: controller.getProduct,
   });
 
