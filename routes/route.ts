@@ -5,7 +5,6 @@ import productRoutes from "./productRoutes";
 import cartRoutes from "./cartRoutes";
 import purchaseRoutes from "./purchaseRoutes";
 import categoryRoutes from "./categoryRoutes";
-import type { FastifyInstance } from "fastify";
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.register(userRoutes, { prefix: "/user" });

@@ -15,13 +15,12 @@ const productRoutes = (fastify: FastifyInstance) => {
       description: "Create new product",
       body: {
         type: "object",
-        required: ["name", "price", "quantity", "seller_id"],
+        required: ["name", "price", "quantity"],
         properties: {
           name: { type: "string" },
           description: { type: "string" },
           price: { type: "number" },
           quantity: { type: "number" },
-          seller_id: { type: "number" },
           discount_id: { type: "number" },
           category_id: { type: "number" },
         },

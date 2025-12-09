@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 const authenticate = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const token = request.cookies.token;
+    const token = request.cookies.auth_token;
     if (!token) {
       return reply.code(401).send({ error: "Authentication required: No token provided." });
     }
