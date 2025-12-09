@@ -82,6 +82,21 @@ const productRoutes = (fastify: FastifyInstance) => {
     handler: controller.getProduct,
   });
 
+  fastify.get("/getProductById/:id", {
+    schema: {
+      tags: ["Product"],
+      description: "Get product by ID",
+      params: {
+        type: "object",
+        properties: {
+          id: { type: "number" },
+        },
+        required: ["id"],
+      },
+    },
+    handler: controller.getProductById,
+  });
+
   fastify.delete("/delete/:id", {
     schema: {
       tags: ["Product"],
