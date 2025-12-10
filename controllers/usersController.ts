@@ -124,6 +124,8 @@ const usersController = () => ({
     reply: FastifyReply
   ) => {
     try {
+      // Allow either an existing address_id or a nested address object in the request body.
+      // Destructure known seller-related fields
       const {
         username,
         email,
@@ -135,7 +137,10 @@ const usersController = () => ({
         bank_account,
         bank_account_bic,
         image,
-      } = request.body;
+      } = request.body as any;
+
+      // Optional nested address object: { country, city, street, postal_code }
+      const address = (request.body as any)?.address;
 
       if (!username || !email || !password) {
         return reply.status(400).send({ message: "All fields required" });
@@ -146,11 +151,53 @@ const usersController = () => ({
         return reply.status(400).send({ message: "Email already used" });
       }
 
+      // If an address_id is provided, ensure it exists to avoid FK violation
+      if (address_id) {
+        const addrExists = await prisma.address.findUnique({ where: { id: Number(address_id) } });
+        if (!addrExists) {
+          return reply.status(400).send({ message: "address_id provided not found" });
+        }
+      }
+
       if (!process.env.JWT_SECRET) {
         return reply.status(500).send({ message: "JWT secret not defined" });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Build the nested seller creation payload.
+      // If address_id is provided we connect to it.
+      // Else if an address object is provided we create it nested.
+      // Otherwise leave address null.
+      const sellerData: any = {
+        phone: phone ?? null,
+        description: description ?? null,
+        tax_id: tax_id ?? null,
+        bank_account: bank_account ?? null,
+        bank_account_bic: bank_account_bic ?? null,
+        image: image ?? null,
+      };
+
+      if (address_id) {
+        // connect to existing address
+        sellerData.address = { connect: { id: Number(address_id) } };
+      } else if (
+        address &&
+        address.country &&
+        address.city &&
+        address.street &&
+        address.postal_code
+      ) {
+        // create nested address if full address provided
+        sellerData.address = {
+          create: {
+            country: address.country,
+            city: address.city,
+            street: address.street,
+            postal_code: address.postal_code,
+          },
+        };
+      }
 
       const user = await prisma.users.create({
         data: {
@@ -159,15 +206,7 @@ const usersController = () => ({
           password: hashedPassword,
           role: "seller",
           seller: {
-            create: {
-              phone: phone ?? null,
-              description: description ?? null,
-              address_id: address_id ?? null,
-              tax_id: tax_id ?? null,
-              bank_account: bank_account ?? null,
-              bank_account_bic: bank_account_bic ?? null,
-              image: image ?? null,
-            },
+            create: sellerData,
           },
         },
         include: { seller: true },

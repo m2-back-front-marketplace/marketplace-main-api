@@ -55,6 +55,11 @@ const cartController = () => ({
     }
 
     try {
+      const product = await prisma.products.findUnique({ where: { id: productId } });
+      if (!product) {
+        return reply.status(404).send({ message: `Product with ID ${productId} not found.` });
+      }
+
       let cart = await prisma.cart.findFirst({
         where: { client_id: userId },
       });
