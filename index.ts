@@ -64,11 +64,7 @@ fastify.register(swaggerUI, {
   },
 });
 
-fastify.register(routes);
-
-fastify.get("/health", async (request, reply) => {
-  reply.send({ health: "api is up and healthy" });
-});
+fastify.register(cookie);
 
 fastify.register(cors, {
   origin: (origin, cb) => {
@@ -83,7 +79,11 @@ fastify.register(cors, {
   credentials: true,
 });
 
-fastify.register(cookie);
+fastify.register(routes);
+
+fastify.get("/health", async (request, reply) => {
+  reply.send({ health: "api is up and healthy" });
+});
 
 const start = async () => {
   try {
