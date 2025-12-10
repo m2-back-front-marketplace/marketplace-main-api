@@ -6,13 +6,25 @@ type PurchaseParams = { purchaseId: string };
 
 const purchaseController = () => ({
   // Create a new purchase from the cart
-  createPurchase: async (request: FastifyRequest, reply: FastifyReply) => {
+  createPurchase: async (
+    request: FastifyRequest<{ Body: { addressId: number } }>,
+    reply: FastifyReply
+  ) => {
     if (!request.user) {
       return reply.status(401).send({ message: "Authentication required." });
     }
     const userId = request.user.id;
+    const { addressId } = request.body;
 
     try {
+      const address = await prisma.address.findUnique({ where: { id: addressId } });
+      if (!address) {
+        return reply.status(404).send({ message: `Address with ID ${addressId} not found.` });
+      }
+      if (address.user_id !== userId) {
+        return reply.status(403).send({ message: `Address does not belong to the user.` });
+      }
+
       const cart = await prisma.cart.findFirst({
         where: { client_id: userId },
         include: {
@@ -37,6 +49,9 @@ const purchaseController = () => ({
             client_id: userId,
             status: "PENDING",
             total,
+            address: {
+              connect: { id: addressId },
+            },
             items: {
               create: cart.items.map((item) => ({
                 product_id: item.product_id,

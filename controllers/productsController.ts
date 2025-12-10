@@ -28,7 +28,26 @@ const productsController = () => ({
         return reply.status(403).send({ message: "Forbidden, must be connected" });
       }
       const seller_id = request.user.id;
-      console.log(seller_id);
+      if (discount_id) {
+        const discount = await prisma.discount.findUnique({ where: { id: discount_id } });
+        if (!discount) {
+          return reply.status(400).send({ message: `Discount with ID ${discount_id} not found.` });
+        }
+      }
+
+      if (categories_id && categories_id.length > 0) {
+        const foundCategories = await prisma.category.findMany({
+          where: { id: { in: categories_id } },
+        });
+        if (foundCategories.length !== categories_id.length) {
+          const foundCategoryIds = foundCategories.map((c) => c.id);
+          const notFoundIds = categories_id.filter((id) => !foundCategoryIds.includes(id));
+          return reply
+            .status(400)
+            .send({ message: `Categories with IDs [${notFoundIds.join(", ")}] not found.` });
+        }
+      }
+
       const product = await prisma.products.create({
         data: {
           name,
@@ -90,6 +109,26 @@ const productsController = () => ({
         return reply.status(404).send({ message: "Product not found" });
       }
 
+      if (discount_id) {
+        const discount = await prisma.discount.findUnique({ where: { id: discount_id } });
+        if (!discount) {
+          return reply.status(400).send({ message: `Discount with ID ${discount_id} not found.` });
+        }
+      }
+
+      if (categories_id && categories_id.length > 0) {
+        const foundCategories = await prisma.category.findMany({
+          where: { id: { in: categories_id } },
+        });
+        if (foundCategories.length !== categories_id.length) {
+          const foundCategoryIds = foundCategories.map((c) => c.id);
+          const notFoundIds = categories_id.filter((id) => !foundCategoryIds.includes(id));
+          return reply
+            .status(400)
+            .send({ message: `Categories with IDs [${notFoundIds.join(", ")}] not found.` });
+        }
+      }
+
       const updateProduct = await prisma.products.update({
         where: {
           id: productId,
@@ -102,8 +141,8 @@ const productsController = () => ({
           approuved,
           discount: discount_id
             ? {
-              connect: { id: discount_id },
-            }
+                connect: { id: discount_id },
+              }
             : { disconnect: true },
         },
       });
@@ -124,7 +163,6 @@ const productsController = () => ({
       return reply.status(500).send({ message: "Internal server error" });
     }
   },
-
   uploadProductImage: async (
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply
