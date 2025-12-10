@@ -12,7 +12,6 @@ import { PrismaClient } from "../generated/prisma/client";
 
 /* global cache to keep a single PrismaClient across module reloads in development */
 declare global {
-   
   var __prisma: PrismaClient | undefined;
 }
 
