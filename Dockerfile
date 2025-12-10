@@ -50,6 +50,7 @@ COPY --from=builder --chown=appuser:appuser /app/controllers ./controllers
 COPY --from=builder --chown=appuser:appuser /app/routes ./routes
 COPY --from=builder --chown=appuser:appuser /app/middleware ./middleware
 COPY --from=builder --chown=appuser:appuser /app/services ./services
+COPY --from=builder --chown=appuser:appuser /app/utils ./utils
 COPY --from=builder --chown=appuser:appuser /app/types ./types
 
 EXPOSE 8000
