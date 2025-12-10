@@ -1,4 +1,4 @@
-import { PrismaClient } from "../generated/prisma/client";
+import prisma from "../utils/prisma";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const usersController = (prisma: PrismaClient) => ({
+const usersController = () => ({
   login: async (
     request: FastifyRequest<{ Body: { email: string; password: string } }>,
     reply: FastifyReply

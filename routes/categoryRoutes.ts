@@ -1,9 +1,8 @@
 import type { FastifyInstance } from "fastify";
-import { PrismaClient } from "../generated/prisma/client";
+import prisma from "../utils/prisma";
 import categoryController from "../controllers/categoryController";
 
-const prisma = new PrismaClient();
-const category = categoryController(prisma);
+const category = categoryController();
 
 export default async function categoryRoutes(fastify: FastifyInstance) {
   fastify.get("/", category.getCategories);

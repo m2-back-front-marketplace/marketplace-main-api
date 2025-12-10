@@ -1,11 +1,10 @@
 import productsController from "../controllers/productsController";
 import authenticate from "../middleware/authMiddleware";
-import { PrismaClient } from "../generated/prisma/client";
+import prisma from "../utils/prisma";
 import type { FastifyInstance } from "fastify";
 import { requireSeller } from "../middleware/roleMiddleware";
 
-const prisma = new PrismaClient();
-const controller = productsController(prisma);
+const controller = productsController();
 
 const productRoutes = (fastify: FastifyInstance) => {
   fastify.post("/create", {
