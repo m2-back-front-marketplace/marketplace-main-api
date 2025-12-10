@@ -12,7 +12,7 @@ import { PrismaClient } from "../generated/prisma/client";
 
 /* global cache to keep a single PrismaClient across module reloads in development */
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   var __prisma: PrismaClient | undefined;
 }
 
