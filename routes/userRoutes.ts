@@ -1,9 +1,8 @@
 import userController from "../controllers/usersController.ts";
 import authenticate from "../middleware/authMiddleware.ts";
-import { PrismaClient } from "../generated/prisma/client";
+import prisma from "../utils/prisma";
 import type { FastifyInstance } from "fastify";
 
-const prisma = new PrismaClient();
 const controller = userController(prisma);
 
 const userRoutes = (fastify: FastifyInstance) => {

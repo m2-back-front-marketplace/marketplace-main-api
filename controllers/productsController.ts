@@ -1,8 +1,8 @@
-import { PrismaClient } from "../generated/prisma/client";
+import prisma from "../utils/prisma";
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { uploadStream } from "../services/cloudinaryService";
 
-const productsController = (prisma: PrismaClient) => ({
+const productsController = () => ({
   createProduct: async (
     request: FastifyRequest<{
       Body: {
@@ -102,8 +102,8 @@ const productsController = (prisma: PrismaClient) => ({
           approuved,
           discount: discount_id
             ? {
-              connect: { id: discount_id },
-            }
+                connect: { id: discount_id },
+              }
             : { disconnect: true },
         },
       });

@@ -1,8 +1,6 @@
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "../generated/prisma/client";
+import prisma from "../utils/prisma";
 import type { FastifyReply, FastifyRequest } from "fastify";
-
-const prisma = new PrismaClient();
 
 const authenticate = async (request: FastifyRequest, reply: FastifyReply) => {
   try {

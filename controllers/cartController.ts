@@ -1,4 +1,4 @@
-import { PrismaClient } from "../generated/prisma/client";
+import prisma from "../utils/prisma";
 import type { FastifyRequest, FastifyReply } from "fastify";
 
 // Define types for request parts
@@ -6,7 +6,7 @@ type CartItemParams = { itemId: string };
 type AddToCartBody = { productId: number; quantity: number };
 type UpdateCartItemBody = { quantity: number };
 
-const cartController = (prisma: PrismaClient) => ({
+const cartController = () => ({
   // Get user's cart
   getCart: async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.user) {

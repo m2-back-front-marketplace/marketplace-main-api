@@ -1,10 +1,10 @@
-import { PrismaClient } from "../generated/prisma/client";
+import prisma from "../utils/prisma";
 import type { FastifyRequest, FastifyReply } from "fastify";
 
 // Define types for request parts
 type PurchaseParams = { purchaseId: string };
 
-const purchaseController = (prisma: PrismaClient) => ({
+const purchaseController = () => ({
   // Create a new purchase from the cart
   createPurchase: async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.user) {

@@ -1,9 +1,8 @@
 import type { FastifyInstance } from "fastify";
-import { PrismaClient } from "../generated/prisma/client";
 import purchaseController from "../controllers/purchaseController";
+import prisma from "../utils/prisma";
 
-const prisma = new PrismaClient();
-const purchase = purchaseController(prisma);
+const purchase = purchaseController();
 
 export default async function (fastify: FastifyInstance) {
   fastify.post(
