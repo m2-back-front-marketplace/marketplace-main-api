@@ -22,7 +22,7 @@ const purchaseController = () => ({
         return reply.status(404).send({ message: `Address with ID ${addressId} not found.` });
       }
       if (address.user_id !== userId) {
-        return reply.status(403).send({ message: `Address does not belong to the user.` });
+        return reply.status(403).send({ message: "Address does not belong to the user." });
       }
 
       const cart = await prisma.cart.findFirst({
