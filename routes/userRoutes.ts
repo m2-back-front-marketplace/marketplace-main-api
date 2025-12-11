@@ -4,7 +4,7 @@ import type { FastifyInstance } from "fastify";
 
 const controller = userController();
 
-const userRoutes = (fastify: FastifyInstance) => {
+const userRoutes = async (fastify: FastifyInstance) => {
   fastify.post("/registerClient", {
     schema: {
       tags: ["User"],

@@ -6,7 +6,7 @@ import { requireSeller } from "../middleware/roleMiddleware";
 
 const controller = productsController();
 
-const productRoutes = (fastify: FastifyInstance) => {
+const productRoutes = async (fastify: FastifyInstance) => {
   fastify.post("/create", {
     preHandler: [authenticate, requireSeller],
     schema: {
